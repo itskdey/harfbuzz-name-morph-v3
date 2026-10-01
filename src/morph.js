@@ -1,6 +1,6 @@
 import { alignStart, centroidOf, collapse, flattenCommands, resample, translate } from './outline.js';
 
-const RING_POINTS = 256;
+const RING_POINTS = 192;
 let outlineCache = new Map();
 
 export function clearOutlineCache() {
