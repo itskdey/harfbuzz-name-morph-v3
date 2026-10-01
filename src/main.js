@@ -25,6 +25,9 @@ const status = document.getElementById('status');
 const comingSoon = document.getElementById('comingSoon');
 const comingTitle = document.getElementById('comingTitle');
 const impactPulse = document.getElementById('impactPulse');
+const motionField = document.getElementById('motionField');
+const particleLayer = document.getElementById('particleLayer');
+const motionSweep = document.getElementById('motionSweep');
 
 let font;
 let face;
@@ -38,6 +41,7 @@ let lastWeightPlan = 0;
 let targetWeight = 780;
 let currentMorphAnimation = null;
 let loopToken = 0;
+let impactSeq = 0;
 
 const pathEls = new Map();
 
@@ -123,6 +127,117 @@ function pulseField(intensity = 1) {
       fill: 'forwards',
     },
   );
+}
+
+function burstParticles(progress = 0.5, finalBurst = false) {
+  if (reduceMotion || !particleLayer) return;
+
+  const count = finalBurst ? 14 : Math.max(3, Math.round(3 + progress * 4));
+  const baseAngle = (impactSeq++ * 47) * Math.PI / 180;
+
+  for (let i = 0; i < count; i++) {
+    const particle = document.createElement('span');
+    particle.className = 'impact-particle';
+
+    if ((i + impactSeq) % 4 === 0 || (finalBurst && i % 3 === 0)) {
+      particle.classList.add('impact-particle--accent');
+    }
+
+    const angle = baseAngle + (Math.PI * 2 * i) / count + Math.sin(i * 1.7) * .12;
+    const distance = finalBurst
+      ? 66 + (i % 5) * 15
+      : 28 + progress * 40 + (i % 3) * 9;
+    const dx = Math.cos(angle) * distance;
+    const dy = Math.sin(angle) * distance * .62;
+    const size = finalBurst ? 2 + (i % 3) : 1.5 + (i % 2) * 1.2;
+
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+    particleLayer.appendChild(particle);
+
+    const animation = particle.animate(
+      [
+        {
+          opacity: 0,
+          transform: 'translate3d(0,0,0) scale(.25)',
+        },
+        {
+          opacity: finalBurst ? .82 : .5,
+          offset: .16,
+          transform: `translate3d(${(dx * .12).toFixed(1)}px,${(dy * .12).toFixed(1)}px,0) scale(1)`,
+        },
+        {
+          opacity: 0,
+          transform: `translate3d(${dx.toFixed(1)}px,${dy.toFixed(1)}px,0) scale(.15)`,
+        },
+      ],
+      {
+        duration: finalBurst ? 980 + (i % 4) * 70 : 520 + (i % 3) * 55,
+        delay: finalBurst ? i * 12 : i * 8,
+        easing: 'cubic-bezier(.16,1,.3,1)',
+        fill: 'forwards',
+      },
+    );
+
+    animation.finished.catch(() => {}).finally(() => particle.remove());
+  }
+}
+
+function runMotionSweep() {
+  if (reduceMotion || !motionSweep) return;
+
+  motionSweep.getAnimations().forEach((animation) => animation.cancel());
+
+  motionSweep.animate(
+    [
+      {
+        opacity: 0,
+        transform: 'translate3d(-62vw,-2vh,0) rotate(-16deg) scaleX(.58)',
+      },
+      {
+        opacity: .36,
+        offset: .30,
+      },
+      {
+        opacity: .13,
+        offset: .68,
+      },
+      {
+        opacity: 0,
+        transform: 'translate3d(62vw,2vh,0) rotate(-16deg) scaleX(1.08)',
+      },
+    ],
+    {
+      duration: 1080,
+      easing: 'cubic-bezier(.16,1,.3,1)',
+      fill: 'forwards',
+    },
+  );
+}
+
+function exciteField(progress = .5) {
+  if (reduceMotion || !motionField) return;
+
+  const amount = Math.max(.18, 1 - progress * .55);
+  motionField.getAnimations().forEach((animation) => {
+    if (animation.id === 'impact-field') animation.cancel();
+  });
+
+  const animation = motionField.animate(
+    [
+      { filter: 'blur(0px) contrast(1)' },
+      {
+        filter: `blur(${(.32 * amount).toFixed(2)}px) contrast(${(1 + .06 * amount).toFixed(3)})`,
+        offset: .24,
+      },
+      { filter: 'blur(0px) contrast(1)' },
+    ],
+    {
+      duration: 620,
+      easing: 'cubic-bezier(.16,1,.3,1)',
+    },
+  );
+  animation.id = 'impact-field';
 }
 
 function showSubtitle() {
@@ -415,6 +530,8 @@ function hitMorph(progress = 0.5) {
   if (reduceMotion) return null;
 
   pulseField(Math.max(.35, 1 - progress * .45));
+  burstParticles(progress, false);
+  exciteField(progress);
   svg.classList.remove('settled');
 
   if (currentMorphAnimation) {
@@ -478,20 +595,26 @@ function cameraIn() {
   const anim = wrap.animate(
     [
       {
-        opacity: .06,
-        transform: 'translate3d(-3vw,52vh,0) rotate(-1.4deg) scale(2.15)',
-        filter: 'blur(6px)',
+        opacity: .08,
+        transform: 'translate3d(-1.8vw,34vh,0) rotate(-.9deg) scale(1.72)',
+        filter: 'blur(4.2px)',
       },
       {
-        opacity: .55,
-        offset: .34,
-        transform: 'translate3d(-1.2vw,23vh,0) rotate(-.55deg) scale(1.58)',
-        filter: 'blur(1.8px)',
+        opacity: .48,
+        offset: .24,
+        transform: 'translate3d(-.8vw,18vh,0) rotate(-.42deg) scale(1.38)',
+        filter: 'blur(1.7px)',
+      },
+      {
+        opacity: .94,
+        offset: .64,
+        transform: 'translate3d(.22vw,1.4vh,0) rotate(.08deg) scale(1.018)',
+        filter: 'blur(.18px)',
       },
       {
         opacity: 1,
-        offset: .78,
-        transform: 'translate3d(.25vw,-1.5vh,0) rotate(.08deg) scale(.985)',
+        offset: .84,
+        transform: 'translate3d(-.05vw,-.35vh,0) rotate(-.02deg) scale(.996)',
         filter: 'blur(0)',
       },
       {
@@ -501,7 +624,7 @@ function cameraIn() {
       },
     ],
     {
-      duration: 1820,
+      duration: 2050,
       easing: 'cubic-bezier(.16,1,.3,1)',
       fill: 'both',
     },
@@ -521,19 +644,25 @@ function cameraOut() {
         filter: 'blur(0)',
       },
       {
-        opacity: .95,
-        offset: .28,
-        transform: 'translate3d(1vw,5vh,0) rotate(.15deg) scale(1.08)',
-        filter: 'blur(.2px)',
+        opacity: .98,
+        offset: .20,
+        transform: 'translate3d(.45vw,-.4vh,0) rotate(.05deg) scale(1.018)',
+        filter: 'blur(.1px)',
       },
       {
-        opacity: .12,
-        transform: 'translate3d(-2vw,62vh,0) rotate(-.9deg) scale(2.35)',
-        filter: 'blur(7px)',
+        opacity: .68,
+        offset: .52,
+        transform: 'translate3d(1.1vw,10vh,0) rotate(.22deg) scale(1.18)',
+        filter: 'blur(.8px)',
+      },
+      {
+        opacity: .08,
+        transform: 'translate3d(-1.7vw,48vh,0) rotate(-.72deg) scale(1.82)',
+        filter: 'blur(5.2px)',
       },
     ],
     {
-      duration: 760,
+      duration: 980,
       easing: 'cubic-bezier(.72,0,.18,1)',
       fill: 'both',
     },
@@ -566,9 +695,10 @@ async function typePass({ cinematic = true } = {}) {
 
     hitMorph(progress);
 
-    const base = cinematic ? 118 : 155;
-    const extra = states[i].endsWith(' ') ? -45 : Math.random() * 35;
-    await sleep(Math.max(72, base + extra));
+    const cadence = [0, 18, -8, 26, 2, 20, -4, 14, 5, 22, 0];
+    const base = cinematic ? 122 : 150;
+    const extra = states[i].endsWith(' ') ? -32 : cadence[i % cadence.length];
+    await sleep(Math.max(82, base + extra));
   }
 
   await camera;
@@ -580,10 +710,14 @@ async function typePass({ cinematic = true } = {}) {
   // Let the final physical impact reach exactly zero before handing
   // transform control to the idle animation. This prevents the end jump.
   await finishMorphImpact();
-  await sleep(90);
+  await sleep(80);
+
+  burstParticles(1, true);
+  runMotionSweep();
+  await sleep(110);
 
   showSubtitle();
-  await sleep(260);
+  await sleep(300);
   showComingSoon();
   setPhase('hold');
 
@@ -604,7 +738,7 @@ async function cinematicLoop() {
   await typePass({ cinematic: true });
 
   while (myToken === loopToken) {
-    await sleep(3100);
+    await sleep(4400);
     if (myToken !== loopToken) break;
 
     cinematicBusy = true;
@@ -634,7 +768,7 @@ function updateIdleMorph(now) {
 
   // Keep the post-intro weight motion subtle. Large 610↔860 jumps
   // looked like a second unintended morph immediately after settling.
-  targetWeight = targetWeight > 780 ? 742 : 818;
+  targetWeight = targetWeight > 780 ? 754 : 806;
   applyPlan(layout(TITLE, { wght: targetWeight }), { echo: .035 });
   lastWeightPlan = now;
 }
@@ -644,9 +778,25 @@ let pointerY = innerHeight / 2;
 let targetX = pointerX;
 let targetY = pointerY;
 let pointerActive = false;
+let pointerEnergy = 0;
+let targetPointerEnergy = 0;
+let lastPointerEventX = pointerX;
+let lastPointerEventY = pointerY;
 
 addEventListener('pointermove', (e) => {
   pointerActive = true;
+
+  const dx = e.clientX - lastPointerEventX;
+  const dy = e.clientY - lastPointerEventY;
+  const distance = Math.hypot(dx, dy);
+
+  targetPointerEnergy = Math.max(
+    targetPointerEnergy,
+    Math.min(1, distance / 42),
+  );
+
+  lastPointerEventX = e.clientX;
+  lastPointerEventY = e.clientY;
   targetX = e.clientX;
   targetY = e.clientY;
 }, { passive: true });
@@ -680,8 +830,15 @@ function frame(now) {
   const nx = pointerX / Math.max(1, innerWidth) - .5;
   const ny = pointerY / Math.max(1, innerHeight) - .5;
 
-  document.documentElement.style.setProperty('--tilt-x', `${(-ny * .72).toFixed(3)}deg`);
-  document.documentElement.style.setProperty('--tilt-y', `${(nx * .84).toFixed(3)}deg`);
+  const energyEase = 1 - Math.exp(-dt * 8.5);
+  pointerEnergy += (targetPointerEnergy - pointerEnergy) * energyEase;
+  targetPointerEnergy *= Math.exp(-dt * 7.5);
+
+  document.documentElement.style.setProperty('--energy', pointerEnergy.toFixed(3));
+  document.documentElement.style.setProperty('--field-rot', `${(nx * .45 - ny * .28).toFixed(3)}deg`);
+  document.documentElement.style.setProperty('--field-scale', (1 + pointerEnergy * .008).toFixed(4));
+  document.documentElement.style.setProperty('--tilt-x', `${(-ny * (.72 + pointerEnergy * .28)).toFixed(3)}deg`);
+  document.documentElement.style.setProperty('--tilt-y', `${(nx * (.84 + pointerEnergy * .30)).toFixed(3)}deg`);
   document.documentElement.style.setProperty('--field-x', `${(nx * -16).toFixed(2)}px`);
   document.documentElement.style.setProperty('--field-y', `${(ny * -12).toFixed(2)}px`);
   document.documentElement.style.setProperty('--focus-x', `${(50 + nx * 10).toFixed(2)}%`);
