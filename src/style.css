@@ -73,6 +73,27 @@ body::after {
     var(--bg);
 }
 
+.particle-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: .95;
+  contain: strict;
+}
+
+body[data-phase="loading"] .particle-canvas {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .particle-canvas {
+    display: none;
+  }
+}
+
 /* EDITORIAL FRAME --------------------------------------------------------- */
 
 .topbar,
@@ -531,28 +552,6 @@ body::after {
   border-radius: 50%;
   opacity: 0;
   transform: translate(-50%, -50%) scale(.5);
-}
-
-.particle-layer {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 5;
-  width: 1px;
-  height: 1px;
-}
-
-.impact-particle {
-  position: absolute;
-  left: 0;
-  top: 0;
-  border-radius: 50%;
-  background: var(--ink);
-  opacity: 0;
-}
-
-.impact-particle--accent {
-  background: var(--accent);
 }
 
 .motion-sweep {
