@@ -11,6 +11,9 @@
   --field-y: 0px;
   --focus-x: 50%;
   --focus-y: 50%;
+  --energy: 0;
+  --field-rot: 0deg;
+  --field-scale: 1;
 }
 
 * {
@@ -155,9 +158,53 @@ body::after {
   inset: -10%;
   z-index: 0;
   pointer-events: none;
-  transform: translate3d(var(--field-x), var(--field-y), 0);
+  transform:
+    translate3d(var(--field-x), var(--field-y), 0)
+    rotate(var(--field-rot))
+    scale(var(--field-scale));
   transition: opacity 900ms cubic-bezier(.16,1,.3,1);
   will-change: transform, opacity;
+}
+
+.motion-field::before,
+.motion-field::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.motion-field::before {
+  width: min(78vmin, 900px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,90,54,.055), rgba(255,90,54,0) 42%),
+    radial-gradient(circle at 42% 46%, rgba(17,17,15,.026), transparent 65%);
+  filter: blur(1px);
+  opacity: calc(.48 + var(--energy) * .18);
+  animation: fieldHaloBreath 8.6s ease-in-out infinite;
+}
+
+.motion-field::after {
+  width: min(98vmin, 1120px);
+  height: min(42vmin, 470px);
+  border: 1px solid rgba(17,17,15,.055);
+  border-radius: 50%;
+  opacity: .26;
+  animation: fieldEllipse 15s ease-in-out infinite alternate;
+}
+
+@keyframes fieldHaloBreath {
+  0%, 100% { transform: translate(-50%, -50%) scale(.94); opacity: .38; }
+  50% { transform: translate(-50%, -50%) scale(1.07); opacity: .58; }
+}
+
+@keyframes fieldEllipse {
+  from { transform: translate(-50%, -50%) rotate(-8deg) scaleX(.96); }
+  to { transform: translate(-50%, -50%) rotate(8deg) scaleX(1.035); }
 }
 
 .kinetic-word {
@@ -289,6 +336,7 @@ body::after {
   top: 31%;
   background: var(--ink);
   border: 0;
+  animation: discDriftA 7.8s ease-in-out infinite alternate;
 }
 
 .motion-disc--b {
@@ -296,6 +344,101 @@ body::after {
   height: 44px;
   right: 9%;
   top: 26%;
+  animation: discDriftB 10.4s ease-in-out infinite alternate;
+}
+
+@keyframes discDriftA {
+  from { transform: translate3d(-4px,8px,0) scale(.82); }
+  to { transform: translate3d(9px,-12px,0) scale(1.16); }
+}
+
+@keyframes discDriftB {
+  from { transform: translate3d(8px,-5px,0) rotate(-8deg) scale(.92); }
+  to { transform: translate3d(-12px,10px,0) rotate(11deg) scale(1.07); }
+}
+
+.motion-arc {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border: 1px solid rgba(17,17,15,.075);
+  border-radius: 50%;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.motion-arc--a {
+  width: min(88vmin, 980px);
+  height: min(30vmin, 340px);
+  margin-left: calc(min(88vmin, 980px) * -.5);
+  margin-top: calc(min(30vmin, 340px) * -.5);
+  animation: arcA 17s cubic-bezier(.45,0,.2,1) infinite alternate;
+}
+
+.motion-arc--b {
+  width: min(38vmin, 430px);
+  height: min(92vmin, 1020px);
+  margin-left: calc(min(38vmin, 430px) * -.5);
+  margin-top: calc(min(92vmin, 1020px) * -.5);
+  animation: arcB 19s cubic-bezier(.45,0,.2,1) infinite alternate-reverse;
+}
+
+@keyframes arcA {
+  from { transform: rotate(-12deg) translate3d(-2vw,0,0) scale(.97); }
+  to { transform: rotate(9deg) translate3d(2vw,-1vh,0) scale(1.035); }
+}
+
+@keyframes arcB {
+  from { transform: rotate(18deg) translate3d(0,-1vh,0) scale(1.03); }
+  to { transform: rotate(-11deg) translate3d(1vw,1vh,0) scale(.965); }
+}
+
+.particle-layer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.impact-particle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 0 0 3px rgba(17,17,15,.018);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.impact-particle--accent {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(255,90,54,.035);
+}
+
+.motion-sweep {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(32vw, 520px);
+  height: 150vh;
+  opacity: 0;
+  transform-origin: 50% 50%;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,.58) 44%,
+    rgba(255,90,54,.08) 50%,
+    rgba(255,255,255,.34) 56%,
+    rgba(255,255,255,0) 100%
+  );
+  filter: blur(8px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: transform, opacity;
 }
 
 .impact-pulse {
@@ -572,6 +715,10 @@ body[data-phase="intro"] .motion-disc {
   opacity: .32;
 }
 
+body[data-phase="intro"] .motion-arc {
+  opacity: .12;
+}
+
 body[data-phase="hold"] .topbar,
 body[data-phase="hold"] .footer {
   opacity: 1;
@@ -595,6 +742,14 @@ body[data-phase="hold"] .motion-disc {
   opacity: .68;
 }
 
+body[data-phase="hold"] .motion-arc {
+  opacity: .38;
+}
+
+body[data-phase="hold"] .motion-field::before {
+  opacity: .62;
+}
+
 body[data-phase="exit"] .topbar,
 body[data-phase="exit"] .footer {
   opacity: .36;
@@ -611,6 +766,14 @@ body[data-phase="exit"] .kinetic-word {
 
 body[data-phase="exit"] .orbit {
   opacity: .12;
+}
+
+body[data-phase="exit"] .motion-arc {
+  opacity: .06;
+}
+
+body[data-phase="exit"] .motion-field::before {
+  opacity: .18;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -744,5 +907,11 @@ body[data-phase="exit"] .orbit {
 
   .motion-field {
     display: none;
+  }
+
+  .motion-arc,
+  .motion-sweep,
+  .particle-layer {
+    display: none !important;
   }
 }
