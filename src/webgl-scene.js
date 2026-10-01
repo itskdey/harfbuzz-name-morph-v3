@@ -199,7 +199,7 @@ varying float vWave;
 
 float vignette(vec2 uv) {
   vec2 p = uv - 0.5;
-  return smoothstep(0.78, 0.18, length(p));
+  return 1.0 - smoothstep(0.18, 0.78, length(p));
 }
 
 void main() {
