@@ -2,6 +2,7 @@ import * as hb from 'harfbuzzjs';
 import './style.css';
 import { clearOutlineCache, buildMorph, ringsToPath } from './morph.js';
 import { MAX_DT, scalar, stepPoints, stepScalar } from './spring.js';
+import { ParticleField } from './particles.js';
 
 const TITLE = 'មាន ភក្តី';
 const SUBTITLE = 'MEAN PHEAKDEY';
@@ -12,10 +13,11 @@ const DAMPING = 29.7;
 const EPS_POS = 0.18;
 const EPS_VEL = 0.22;
 const EPS_UNIT = 0.002;
-const IDLE_MORPH_DELAY = 2300;
+const LOOP_DURATION = 8000;
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+const particleCanvas = document.getElementById('particleCanvas');
 const cameraWrap = document.getElementById('cameraWrap');
 const wrap = document.getElementById('morphWrap');
 const svg = document.getElementById('morphStage');
@@ -27,10 +29,10 @@ const comingSoon = document.getElementById('comingSoon');
 const comingTitle = document.getElementById('comingTitle');
 const impactPulse = document.getElementById('impactPulse');
 const motionField = document.getElementById('motionField');
-const particleLayer = document.getElementById('particleLayer');
 const motionSweep = document.getElementById('motionSweep');
 const sceneNumber = document.getElementById('sceneNumber');
 const centerGlow = document.getElementById('centerGlow');
+const particles = new ParticleField(particleCanvas, { reducedMotion: reduceMotion });
 
 let font;
 let face;
@@ -38,17 +40,19 @@ let blob;
 let upem = 1000;
 let extents = { ascender: 800, descender: -200 };
 let variationKey = '';
-let finishedTyping = false;
-let cinematicBusy = false;
-let lastWeightPlan = 0;
-let targetWeight = 780;
 let currentMorphAnimation = null;
-let loopToken = 0;
-let impactSeq = 0;
 let stageViewBox = null;
 let morphSettled = false;
 let renderDirty = true;
 let lastMotionCss = '';
+let timelineReady = false;
+let timelineStart = 0;
+let timelineCycle = -1;
+let timelineMs = 0;
+let currentScene = 0;
+let nextTimelineEvent = 0;
+let timelineEvents = [];
+let timelineLayouts = [];
 
 const pathEls = new Map();
 
@@ -141,60 +145,7 @@ function pulseField(intensity = 1) {
 }
 
 function burstParticles(progress = 0.5, finalBurst = false) {
-  if (reduceMotion || !particleLayer) return;
-
-  const seq = impactSeq++;
-  if (!finalBurst && seq % 2 === 1) return;
-
-  const count = finalBurst ? 10 : Math.max(2, Math.round(2 + progress * 2));
-  const baseAngle = (seq * 47) * Math.PI / 180;
-
-  for (let i = 0; i < count; i++) {
-    const particle = document.createElement('span');
-    particle.className = 'impact-particle';
-
-    if ((i + impactSeq) % 4 === 0 || (finalBurst && i % 3 === 0)) {
-      particle.classList.add('impact-particle--accent');
-    }
-
-    const angle = baseAngle + (Math.PI * 2 * i) / count + Math.sin(i * 1.7) * .12;
-    const distance = finalBurst
-      ? 66 + (i % 5) * 15
-      : 28 + progress * 40 + (i % 3) * 9;
-    const dx = Math.cos(angle) * distance;
-    const dy = Math.sin(angle) * distance * .62;
-    const size = finalBurst ? 2 + (i % 3) : 1.5 + (i % 2) * 1.2;
-
-    particle.style.width = `${size}px`;
-    particle.style.height = `${size}px`;
-    particleLayer.appendChild(particle);
-
-    const animation = particle.animate(
-      [
-        {
-          opacity: 0,
-          transform: 'translate3d(0,0,0) scale(.25)',
-        },
-        {
-          opacity: finalBurst ? .82 : .5,
-          offset: .16,
-          transform: `translate3d(${(dx * .12).toFixed(1)}px,${(dy * .12).toFixed(1)}px,0) scale(1)`,
-        },
-        {
-          opacity: 0,
-          transform: `translate3d(${dx.toFixed(1)}px,${dy.toFixed(1)}px,0) scale(.15)`,
-        },
-      ],
-      {
-        duration: finalBurst ? 980 + (i % 4) * 70 : 520 + (i % 3) * 55,
-        delay: finalBurst ? i * 12 : i * 8,
-        easing: 'cubic-bezier(.16,1,.3,1)',
-        fill: 'forwards',
-      },
-    );
-
-    animation.finished.catch(() => {}).finally(() => particle.remove());
-  }
+  particles.burst(Math.max(.25, progress), finalBurst);
 }
 
 function runMotionSweep() {
@@ -652,128 +603,238 @@ function cameraOut() {
   return anim.finished.catch(() => {});
 }
 
-async function storyboardPass() {
-  const states = typingStates(TITLE);
-  const splitAt = Math.max(2, Math.ceil((states.length - 1) * .46));
-  const startedAt = performance.now();
+function clamp01(value) {
+  return Math.max(0, Math.min(1, value));
+}
 
-  const waitTo = (targetMs) => new Promise((resolve) => {
-    const target = startedAt + targetMs;
-    const tick = (now) => {
-      if (now >= target) resolve();
-      else requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
+function easeOutQuint(t) {
+  t = clamp01(t);
+  return 1 - Math.pow(1 - t, 5);
+}
 
-  finishedTyping = false;
-  cinematicBusy = true;
+function easeInOutCubic(t) {
+  t = clamp01(t);
+  return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function setScene(scene) {
+  if (scene === currentScene) return;
+  currentScene = scene;
+  setPhase(`scene-${scene}`);
+}
+
+function sceneForTime(ms) {
+  if (ms < 500) return 1;
+  if (ms < 1200) return 2;
+  if (ms < 2000) return 3;
+  if (ms < 3000) return 4;
+  if (ms < 4000) return 5;
+  if (ms < 4800) return 6;
+  if (ms < 5600) return 7;
+  if (ms < 7000) return 8;
+  if (ms < 7500) return 9;
+  return 10;
+}
+
+function resetTimelineCycle(cycle) {
+  timelineCycle = cycle;
+  nextTimelineEvent = 0;
+  currentScene = 0;
+
   subtitle.classList.remove('visible', 'leaving');
   comingSoon.classList.remove('visible', 'leaving');
   svg.classList.remove('settled');
+  cameraWrap.getAnimations().forEach((animation) => animation.cancel());
+  svg.getAnimations().forEach((animation) => animation.cancel());
+  currentMorphAnimation = null;
 
-  // 01 — 0.0s → 0.8s / Ambient loading frame.
-  setPhase('scene-1');
-  applyPlan(layout('', { wght: 720 }), { echo: .18 });
-  await waitTo(800);
-
-  // 02 — 0.8s → 1.6s / Camera pushes into the orbital composition.
-  setPhase('scene-2');
-  const cameraEntry = cameraIn();
-  await Promise.all([cameraEntry, waitTo(1600)]);
-
-  // 03 — 1.6s → 2.4s / First Khmer forms enter.
-  setPhase('scene-3');
-  for (let i = 1; i <= splitAt; i++) {
-    const progress = i / (states.length - 1);
-    applyPlan(layout(states[i], { wght: 760 }), {
-      echo: i === 1 || i % 2 === 0 ? Math.max(.16, .42 - progress * .12) : 0,
-    });
-    hitMorph(progress * .82);
-
-    const sceneProgress = i / splitAt;
-    await waitTo(1600 + sceneProgress * 760);
-  }
-  await waitTo(2400);
-
-  // 04 — 2.4s → 3.2s / Sequential morph completes the name.
-  setPhase('scene-4');
-  const remaining = Math.max(1, states.length - 1 - splitAt);
-  for (let i = splitAt + 1; i < states.length; i++) {
-    const progress = i / (states.length - 1);
-    applyPlan(layout(states[i], { wght: 760 }), {
-      echo: i % 2 === 0 ? Math.max(.12, .34 - progress * .10) : 0,
-    });
-    hitMorph(progress);
-
-    const sceneProgress = (i - splitAt) / remaining;
-    await waitTo(2400 + sceneProgress * 760);
-  }
-  await waitTo(3200);
-
-  // 05 — 3.2s → 4.0s / Final physical lock + strongest field response.
-  setPhase('scene-5');
-  applyPlan(layout(TITLE, { wght: 790 }), { echo: .28 });
-  hitMorph(1);
-  pulseField(1.18);
-  burstParticles(1, true);
-  await finishMorphImpact();
-  await waitTo(4000);
-
-  // 06 — 4.0s → 4.8s / Editorial reveal layer.
-  setPhase('scene-6');
-  runMotionSweep();
-  showSubtitle();
-  await waitTo(4250);
-  showComingSoon();
-  await waitTo(4800);
-
-  // 07 — 4.8s → 6.4s / Premium living hold.
-  setPhase('scene-7');
-  svg.classList.remove('settled');
-  requestAnimationFrame(() => svg.classList.add('settled'));
-  lastWeightPlan = performance.now();
-  targetWeight = 790;
-  finishedTyping = true;
-  cinematicBusy = false;
-  await waitTo(6400);
-
-  // 08 — 6.4s → 8.0s / Fade, camera release and reset.
-  cinematicBusy = true;
-  finishedTyping = false;
-  setPhase('scene-8');
-
-  spawnEcho(.7);
-  const exit = cameraOut();
-  const fade = Promise.all([
-    hideSubtitle(),
-    hideComingSoon(),
-  ]);
-
-  await waitTo(7020);
-  applyPlan(layout('', { wght: 730 }), { echo: .34 });
-
-  await Promise.all([exit, fade]);
-  await waitTo(8000);
-}
-async function cinematicLoop() {
-  const myToken = ++loopToken;
-
-  while (myToken === loopToken) {
-    await storyboardPass();
-    if (myToken !== loopToken) break;
-  }
+  applyPlan(timelineLayouts[0], { echo: 0 });
+  setScene(1);
 }
 
-function updateIdleMorph(now) {
-  if (!finishedTyping || cinematicBusy) return;
-  if (now - lastWeightPlan < IDLE_MORPH_DELAY) return;
+function buildTimeline() {
+  const states = typingStates(TITLE);
+  timelineLayouts = states.map((text) => layout(text, { wght: 780 }));
 
-  // Keep the post-intro weight motion subtle. Large 610↔860 jumps
-  // looked like a second unintended morph immediately after settling.
-  targetWeight = targetWeight > 790 ? 766 : 808;
-  applyPlan(layout(TITLE, { wght: targetWeight }), { echo: .035 });
-  lastWeightPlan = now;
+  const firstEnd = Math.max(2, Math.ceil((states.length - 1) * .44));
+  const events = [];
+
+  // 01 / 02: atmosphere and camera entry are continuous from the master clock.
+  events.push({
+    time: 0,
+    run: () => {
+      applyPlan(timelineLayouts[0], { echo: 0 });
+    },
+  });
+
+  // 03: first glyph forming, 1.2s -> 2.0s.
+  for (let i = 1; i <= firstEnd; i++) {
+    const progress = i / (states.length - 1);
+    const local = i / firstEnd;
+    events.push({
+      time: 1200 + local * 760,
+      run: () => {
+        applyPlan(timelineLayouts[i], {
+          echo: i === 1 || i % 2 === 0 ? .18 : 0,
+        });
+        hitMorph(progress * .82);
+      },
+    });
+  }
+
+  // 04: sequential morph, 2.0s -> 3.0s.
+  const remaining = Math.max(1, states.length - 1 - firstEnd);
+  for (let i = firstEnd + 1; i < states.length; i++) {
+    const progress = i / (states.length - 1);
+    const local = (i - firstEnd) / remaining;
+    events.push({
+      time: 2000 + local * 930,
+      run: () => {
+        applyPlan(timelineLayouts[i], {
+          echo: i % 2 === 0 ? .14 : 0,
+        });
+        hitMorph(progress);
+      },
+    });
+  }
+
+  // 05: complete / soft impact.
+  events.push({
+    time: 3000,
+    run: () => {
+      applyPlan(timelineLayouts[timelineLayouts.length - 1], { echo: .22 });
+      pulseField(1.1);
+      burstParticles(1, true);
+    },
+  });
+
+  // 06: light sweep + English name.
+  events.push({
+    time: 4000,
+    run: () => {
+      runMotionSweep();
+      showSubtitle();
+    },
+  });
+
+  // 07: coming-soon lockup.
+  events.push({
+    time: 4800,
+    run: () => {
+      showComingSoon();
+    },
+  });
+
+  // 08: living state.
+  events.push({
+    time: 5600,
+    run: () => {
+      svg.classList.remove('settled');
+      requestAnimationFrame(() => svg.classList.add('settled'));
+    },
+  });
+
+  // 09: camera pullback.
+  events.push({
+    time: 7000,
+    run: () => {
+      spawnEcho(.42);
+    },
+  });
+
+  // 10: graceful fade / clear before exact loop boundary.
+  events.push({
+    time: 7500,
+    run: () => {
+      subtitle.classList.remove('visible');
+      subtitle.classList.add('leaving');
+      comingSoon.classList.remove('visible');
+      comingSoon.classList.add('leaving');
+    },
+  });
+
+  events.push({
+    time: 7720,
+    run: () => {
+      applyPlan(timelineLayouts[0], { echo: .16 });
+    },
+  });
+
+  timelineEvents = events.sort((a, b) => a.time - b.time);
+}
+
+function advanceTimeline(now) {
+  if (!timelineReady) return 0;
+
+  const elapsed = Math.max(0, now - timelineStart);
+  const cycle = Math.floor(elapsed / LOOP_DURATION);
+  const ms = elapsed - cycle * LOOP_DURATION;
+
+  if (cycle !== timelineCycle) {
+    resetTimelineCycle(cycle);
+  }
+
+  setScene(sceneForTime(ms));
+
+  while (
+    nextTimelineEvent < timelineEvents.length &&
+    timelineEvents[nextTimelineEvent].time <= ms
+  ) {
+    timelineEvents[nextTimelineEvent].run();
+    nextTimelineEvent++;
+  }
+
+  timelineMs = ms;
+  return ms;
+}
+
+function updateCameraFromTimeline(ms) {
+  let opacity = 1;
+  let x = 0;
+  let y = 0;
+  let rotation = 0;
+  let scale = 1;
+
+  if (ms < 500) {
+    const p = easeInOutCubic(ms / 500);
+    opacity = .18 + p * .28;
+    y = 13 - p * 3;
+    scale = 1.27 - p * .08;
+    rotation = -.34 + p * .08;
+  } else if (ms < 1200) {
+    const p = easeOutQuint((ms - 500) / 700);
+    opacity = .46 + p * .54;
+    x = -.32 * (1 - p);
+    y = 10 * (1 - p);
+    rotation = -.26 * (1 - p);
+    scale = 1.19 - p * .19;
+  } else if (ms < 5600) {
+    opacity = 1;
+    const breathe = Math.sin((ms - 1200) / 900) * .0018;
+    scale = 1 + breathe;
+    y = Math.sin((ms - 1200) / 1150) * .18;
+  } else if (ms < 7000) {
+    opacity = 1;
+    const breathe = Math.sin((ms - 5600) / 820) * .0025;
+    scale = 1 + breathe;
+    y = Math.sin((ms - 5600) / 1020) * .22;
+  } else if (ms < 7500) {
+    const p = easeInOutCubic((ms - 7000) / 500);
+    opacity = 1 - p * .12;
+    y = -p * 1.1;
+    scale = 1 - p * .11;
+    rotation = p * .06;
+  } else {
+    const p = easeInOutCubic((ms - 7500) / 500);
+    opacity = .88 * (1 - p);
+    y = -1.1 - p * 3.5;
+    scale = .89 - p * .08;
+    rotation = .06 - p * .10;
+  }
+
+  cameraWrap.style.opacity = opacity.toFixed(3);
+  cameraWrap.style.transform =
+    `translate3d(${x.toFixed(3)}vw,${y.toFixed(3)}vh,0) rotate(${rotation.toFixed(3)}deg) scale(${scale.toFixed(4)})`;
 }
 
 let pointerX = innerWidth / 2;
@@ -828,7 +889,8 @@ function frame(now) {
     render();
   }
 
-  updateIdleMorph(now);
+  const masterMs = advanceTimeline(now);
+  updateCameraFromTimeline(masterMs);
 
   const t = (now - started) / 1000;
   if (!pointerActive) {
@@ -842,6 +904,9 @@ function frame(now) {
 
   const nx = pointerX / Math.max(1, innerWidth) - .5;
   const ny = pointerY / Math.max(1, innerHeight) - .5;
+
+  particles.setPointer(nx, ny);
+  particles.update(now, masterMs);
 
   const energyEase = 1 - Math.exp(-rawDt * 7.2);
   pointerEnergy += (targetPointerEnergy - pointerEnergy) * energyEase;
@@ -885,7 +950,7 @@ async function init() {
     font.setScale(upem, upem);
     extents = font.hExtents();
 
-    const stableLayout = layout(TITLE, { wght: 810 });
+    const stableLayout = layout(TITLE, { wght: 780 });
     const asc = extents?.ascender ?? upem * 0.8;
     const desc = extents?.descender ?? -upem * 0.2;
     const padX = upem * 0.42;
@@ -897,16 +962,19 @@ async function init() {
     requestAnimationFrame(frame);
     await sleep(180);
 
+    buildTimeline();
+
     if (reduceMotion) {
-      applyPlan(layout(TITLE, { wght: 790 }));
+      applyPlan(timelineLayouts[timelineLayouts.length - 1]);
       subtitle.classList.add('visible');
       comingSoon.classList.add('visible');
-      setPhase('scene-7');
-      finishedTyping = true;
+      setPhase('scene-8');
       return;
     }
 
-    cinematicLoop();
+    timelineStart = performance.now();
+    timelineReady = true;
+    resetTimelineCycle(0);
   } catch (error) {
     console.error(error);
     status.textContent = `Could not start HarfBuzz: ${error.message}`;
