@@ -3,20 +3,73 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" />
-  <title>មាន ភក្តី — HarfBuzz Morph</title>
+  <meta name="theme-color" content="#f5f5f1" />
+  <meta
+    name="description"
+    content="Mean Pheakdey — a new web experience is coming soon."
+  />
+  <title>Mean Pheakdey — Coming Soon</title>
   <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin>
 </head>
-<body>
+<body data-phase="loading">
   <main class="hero">
-    <div id="morphWrap" class="morph-wrap" aria-label="មាន ភក្តី">
-      <svg id="morphStage" class="morph-stage" role="img" aria-label="មាន ភក្តី">
-        <g id="echoLayer" transform="scale(1,-1)" aria-hidden="true"></g>
-        <g id="glyphLayer" transform="scale(1,-1)"></g>
-      </svg>
+    <header class="topbar" aria-label="Site status">
+      <div class="brand-mark">
+        <span class="brand-index">01</span>
+        <span class="brand-name">KDEY / DIGITAL</span>
+      </div>
+
+      <div class="site-state">
+        <span class="state-dot" aria-hidden="true"></span>
+        <span>WEB EXPERIENCE / IN DEVELOPMENT</span>
+      </div>
+    </header>
+
+    <div id="motionField" class="motion-field" aria-hidden="true">
+      <div class="kinetic-word kinetic-word--a">COMING</div>
+      <div class="kinetic-word kinetic-word--b">SOON</div>
+
+      <div class="orbit orbit--a">
+        <span class="orbit-node orbit-node--a"></span>
+        <span class="orbit-node orbit-node--b"></span>
+      </div>
+
+      <div class="orbit orbit--b">
+        <span class="orbit-node orbit-node--c"></span>
+      </div>
+
+      <div id="impactPulse" class="impact-pulse"></div>
+      <div class="motion-disc motion-disc--a"></div>
+      <div class="motion-disc motion-disc--b"></div>
     </div>
 
-    <div id="subtitle" class="subtitle" aria-label="Mean Pheakdey"></div>
+    <section class="hero-core" aria-label="Coming soon">
+      <div id="eyebrow" class="eyebrow" aria-hidden="true">
+        <span>WEB / 01</span>
+        <span>SHAPING THE NEXT VERSION</span>
+      </div>
+
+      <div id="morphWrap" class="morph-wrap" aria-label="មាន ភក្តី">
+        <svg id="morphStage" class="morph-stage" role="img" aria-label="មាន ភក្តី">
+          <g id="echoLayer" transform="scale(1,-1)" aria-hidden="true"></g>
+          <g id="glyphLayer" transform="scale(1,-1)"></g>
+        </svg>
+      </div>
+
+      <div id="subtitle" class="subtitle" aria-label="Mean Pheakdey"></div>
+
+      <div id="comingSoon" class="coming-soon" aria-label="Web experience coming soon">
+        <span class="coming-kicker">NEW WEB EXPERIENCE</span>
+        <span id="comingTitle" class="coming-title" aria-hidden="true"></span>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>HarfBuzz / outline motion</span>
+      <span class="footer-center">TYPE · CODE · MOTION</span>
+      <span>2026 / WORK IN PROGRESS</span>
+    </footer>
+
     <div id="status" class="status" aria-live="polite"></div>
   </main>
 

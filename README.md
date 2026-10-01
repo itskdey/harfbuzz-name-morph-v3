@@ -1,40 +1,46 @@
-# Mean Pheakdey — HarfBuzz Outline Morph v3
+# Mean Pheakdey — HarfBuzz Coming Soon
 
-A minimal name landing page using the same core technique as `seanghay/typing-morph`:
+A motion-graphics coming-soon landing page built around real HarfBuzz glyph shaping and outline interpolation.
+
+## Core morph engine
 
 - HarfBuzz shapes Khmer text into glyphs.
 - Glyph outlines are flattened into contours.
 - Each contour is resampled to 256 points.
 - Old/new contours are paired by centroid, size and winding.
-- Every outline point is moved with spring physics.
+- Every outline point moves with spring physics.
 
-## v3 changes
+## Coming Soon motion system
 
-- Removed the grid completely.
-- Removed the underline completely.
-- No typing cursor.
-- Clean white / near-black reference-site palette.
-- Cinematic camera choreography inspired by the supplied screen recording:
-  - large glyph crop rises from below the viewport,
-  - the Khmer name assembles while the camera pulls back,
-  - elastic micro-impact on each HarfBuzz shaping step,
-  - subtle outline echo trails during morph transitions,
-  - staged Latin subtitle reveal,
-  - final variable-weight breathing morph,
-  - looped exit/re-entry sequence.
-- Subtle pointer parallax remains, but is intentionally restrained.
+The HarfBuzz morph remains the hero. The rest of the page now behaves like one coordinated motion piece:
 
-## Run
+- oversized Khmer arrival from below the viewport
+- true outline reshaping during each typing state
+- cinematic camera pull-back as the word assembles
+- elastic micro-impact on each HarfBuzz plan
+- outline echo trails during morph changes
+- kinetic outlined “COMING / SOON” background typography
+- slow orbit rings and geometric motion accents
+- synchronized “COMING SOON” character reveal
+- subtle pointer-driven depth and focal movement
+- clean warm-white / near-black palette with one orange status accent
+- coordinated hold → exit → rebuild loop
+- no grid, no underline, no cursor
+- reduced-motion fallback
+
+## Development
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Production build
+## Production
 
 ```bash
 npm run build
 ```
 
-Upload the contents of `dist/` to your static host (for InfinityFree, upload them into `htdocs/`).
+Upload the contents of `dist/` to any static host.
+
+For InfinityFree, upload the built files inside `htdocs/`.
