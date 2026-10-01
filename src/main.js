@@ -134,7 +134,7 @@ function pulseField(intensity = 1) {
     ],
     {
       duration: 900,
-      easing: 'cubic-bezier(.16,1,.3,1)',
+      easing: 'cubic-bezier(.20,.76,.24,1)',
       fill: 'forwards',
     },
   );
@@ -503,10 +503,6 @@ function render() {
     }
   }
 
-  if (stageViewBox) {
-    svg.setAttribute('viewBox', stageViewBox);
-  }
-
   renderDirty = false;
 }
 
@@ -594,23 +590,18 @@ function cameraIn() {
   const anim = cameraWrap.animate(
     [
       {
-        opacity: .08,
-        transform: 'translate3d(-1.8vw,34vh,0) rotate(-.9deg) scale(1.72)',
+        opacity: .10,
+        transform: 'translate3d(-1vw,20vh,0) rotate(-.48deg) scale(1.42)',
       },
       {
-        opacity: .48,
-        offset: .24,
-        transform: 'translate3d(-.8vw,18vh,0) rotate(-.42deg) scale(1.38)',
+        opacity: .54,
+        offset: .30,
+        transform: 'translate3d(-.42vw,9vh,0) rotate(-.20deg) scale(1.20)',
       },
       {
         opacity: .94,
-        offset: .64,
-        transform: 'translate3d(.22vw,1.4vh,0) rotate(.08deg) scale(1.018)',
-      },
-      {
-        opacity: 1,
-        offset: .84,
-        transform: 'translate3d(-.05vw,-.35vh,0) rotate(-.02deg) scale(.996)',
+        offset: .70,
+        transform: 'translate3d(.10vw,.8vh,0) rotate(.025deg) scale(1.012)',
       },
       {
         opacity: 1,
@@ -638,22 +629,22 @@ function cameraOut() {
       },
       {
         opacity: .98,
-        offset: .20,
-        transform: 'translate3d(.45vw,-.4vh,0) rotate(.05deg) scale(1.018)',
+        offset: .28,
+        transform: 'translate3d(.18vw,-.2vh,0) rotate(.02deg) scale(1.012)',
       },
       {
-        opacity: .68,
-        offset: .52,
-        transform: 'translate3d(1.1vw,10vh,0) rotate(.22deg) scale(1.18)',
+        opacity: .70,
+        offset: .62,
+        transform: 'translate3d(.55vw,7vh,0) rotate(.10deg) scale(1.10)',
       },
       {
-        opacity: .08,
-        transform: 'translate3d(-1.7vw,48vh,0) rotate(-.72deg) scale(1.82)',
+        opacity: .06,
+        transform: 'translate3d(-.8vw,28vh,0) rotate(-.32deg) scale(1.48)',
       },
     ],
     {
       duration: 940,
-      easing: 'cubic-bezier(.72,0,.18,1)',
+      easing: 'cubic-bezier(.4,0,.2,1)',
       fill: 'both',
     },
   );
@@ -869,7 +860,7 @@ function frame(now) {
   ].join(';');
 
   if (motionCss !== lastMotionCss) {
-    document.documentElement.style.cssText += ';' + motionCss;
+    document.documentElement.style.cssText = motionCss;
     lastMotionCss = motionCss;
   }
 
