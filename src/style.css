@@ -73,6 +73,73 @@ body::after {
     var(--bg);
 }
 
+.webgl-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: .92;
+  transform: translateZ(0);
+  transition:
+    opacity 900ms cubic-bezier(.22,1,.36,1),
+    filter 900ms cubic-bezier(.22,1,.36,1);
+}
+
+.webgl-wash {
+  position: fixed;
+  inset: 0;
+  z-index: .5;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(245,244,238,0) 0%, rgba(245,244,238,.18) 52%, rgba(245,244,238,.76) 100%),
+    linear-gradient(180deg, rgba(245,244,238,.16), rgba(245,244,238,.02) 45%, rgba(245,244,238,.24));
+  mix-blend-mode: normal;
+}
+
+html[data-webgl-quality="static"] .webgl-backdrop {
+  display: none;
+}
+
+html[data-webgl-quality="low"] .webgl-backdrop {
+  opacity: .72;
+}
+
+body[data-phase="loading"] .webgl-backdrop {
+  opacity: 0;
+}
+
+body[data-phase="scene-1"] .webgl-backdrop {
+  opacity: .52;
+}
+
+body[data-phase="scene-2"] .webgl-backdrop {
+  opacity: .72;
+}
+
+body[data-phase="scene-3"] .webgl-backdrop,
+body[data-phase="scene-4"] .webgl-backdrop,
+body[data-phase="scene-5"] .webgl-backdrop {
+  opacity: .92;
+}
+
+body[data-phase="scene-6"] .webgl-backdrop,
+body[data-phase="scene-7"] .webgl-backdrop,
+body[data-phase="scene-8"] .webgl-backdrop {
+  opacity: .82;
+}
+
+body[data-phase="scene-9"] .webgl-backdrop {
+  opacity: .48;
+  filter: blur(.6px);
+}
+
+body[data-phase="scene-10"] .webgl-backdrop {
+  opacity: .14;
+  filter: blur(1.8px);
+}
+
 /* EDITORIAL FRAME --------------------------------------------------------- */
 
 .topbar,
@@ -661,7 +728,7 @@ body[data-phase^="scene-"] .manifesto {
 }
 
 body[data-phase="scene-1"] .motion-field {
-  opacity: .28;
+  opacity: .20;
 }
 
 body[data-phase="scene-1"] .ghost-word {
@@ -673,7 +740,7 @@ body[data-phase="scene-1"] .morph-wrap {
 }
 
 body[data-phase="scene-2"] .motion-field {
-  opacity: .46;
+  opacity: .34;
 }
 
 body[data-phase="scene-2"] .ghost-word {
@@ -682,7 +749,7 @@ body[data-phase="scene-2"] .ghost-word {
 
 body[data-phase="scene-3"] .motion-field,
 body[data-phase="scene-4"] .motion-field {
-  opacity: .60;
+  opacity: .44;
 }
 
 body[data-phase="scene-3"] .ghost-word,
@@ -691,7 +758,7 @@ body[data-phase="scene-4"] .ghost-word {
 }
 
 body[data-phase="scene-5"] .motion-field {
-  opacity: .68;
+  opacity: .50;
 }
 
 body[data-phase="scene-5"] .ghost-word {
@@ -907,6 +974,10 @@ body[data-phase="scene-10"] .ghost-word--bottom {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .webgl-backdrop {
+    display: none !important;
+  }
+
   body::after,
   .state-dot,
   .motion-field::before,
