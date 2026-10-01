@@ -680,6 +680,12 @@ function cameraOut() {
 async function storyboardPass() {
   const states = typingStates(TITLE);
   const splitAt = Math.max(2, Math.ceil((states.length - 1) * .46));
+  const startedAt = performance.now();
+
+  const waitTo = async (targetMs) => {
+    const remaining = targetMs - (performance.now() - startedAt);
+    if (remaining > 0) await sleep(remaining);
+  };
 
   finishedTyping = false;
   cinematicBusy = true;
@@ -690,11 +696,12 @@ async function storyboardPass() {
   // 01 — 0.0s → 0.8s / Ambient loading frame.
   setPhase('scene-1');
   applyPlan(layout('', { wght: 720 }), { echo: .18 });
-  await sleep(800);
+  await waitTo(800);
 
   // 02 — 0.8s → 1.6s / Camera pushes into the orbital composition.
   setPhase('scene-2');
-  await cameraIn();
+  const cameraEntry = cameraIn();
+  await Promise.all([cameraEntry, waitTo(1600)]);
 
   // 03 — 1.6s → 2.4s / First Khmer forms enter.
   setPhase('scene-3');
@@ -704,8 +711,11 @@ async function storyboardPass() {
       echo: Math.max(.24, .66 - progress * .18),
     });
     hitMorph(progress * .82);
-    await sleep(Math.max(92, 760 / splitAt));
+
+    const sceneProgress = i / splitAt;
+    await waitTo(1600 + sceneProgress * 760);
   }
+  await waitTo(2400);
 
   // 04 — 2.4s → 3.2s / Sequential morph completes the name.
   setPhase('scene-4');
@@ -716,8 +726,11 @@ async function storyboardPass() {
       echo: Math.max(.18, .52 - progress * .2),
     });
     hitMorph(progress);
-    await sleep(Math.max(92, 760 / remaining));
+
+    const sceneProgress = (i - splitAt) / remaining;
+    await waitTo(2400 + sceneProgress * 760);
   }
+  await waitTo(3200);
 
   // 05 — 3.2s → 4.0s / Final physical lock + strongest field response.
   setPhase('scene-5');
@@ -726,15 +739,15 @@ async function storyboardPass() {
   pulseField(1.18);
   burstParticles(1, true);
   await finishMorphImpact();
-  await sleep(380);
+  await waitTo(4000);
 
   // 06 — 4.0s → 4.8s / Editorial reveal layer.
   setPhase('scene-6');
   runMotionSweep();
   showSubtitle();
-  await sleep(250);
+  await waitTo(4250);
   showComingSoon();
-  await sleep(550);
+  await waitTo(4800);
 
   // 07 — 4.8s → 6.4s / Premium living hold.
   setPhase('scene-7');
@@ -745,26 +758,26 @@ async function storyboardPass() {
   targetWeight = 790;
   finishedTyping = true;
   cinematicBusy = false;
-  await sleep(1600);
+  await waitTo(6400);
 
   // 08 — 6.4s → 8.0s / Fade, camera release and reset.
   cinematicBusy = true;
   finishedTyping = false;
   setPhase('scene-8');
 
-  await Promise.all([
+  spawnEcho(.7);
+  const exit = cameraOut();
+  const fade = Promise.all([
     hideSubtitle(),
     hideComingSoon(),
   ]);
 
-  spawnEcho(.7);
-  const exit = cameraOut();
-  await sleep(620);
+  await waitTo(7020);
   applyPlan(layout('', { wght: 730 }), { echo: .34 });
-  await exit;
-  await sleep(260);
-}
 
+  await Promise.all([exit, fade]);
+  await waitTo(8000);
+}
 async function cinematicLoop() {
   const myToken = ++loopToken;
 
