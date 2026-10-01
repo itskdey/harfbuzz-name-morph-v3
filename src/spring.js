@@ -1,4 +1,4 @@
-export const MAX_DT = 1 / 30;
+export const MAX_DT = 1 / 60;
 
 export function scalar(value, target = value) {
   return { pos: value, vel: 0, target };
