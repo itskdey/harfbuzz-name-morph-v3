@@ -484,7 +484,7 @@ body::after {
   display: grid;
   place-items: center;
   transform-origin: 50% 58%;
-  will-change: transform, opacity;
+  will-change: transform, opacity, filter;
   backface-visibility: hidden;
 }
 
