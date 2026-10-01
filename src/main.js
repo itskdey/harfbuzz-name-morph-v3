@@ -2,10 +2,22 @@ import * as hb from 'harfbuzzjs';
 import './style.css';
 import { clearOutlineCache, buildMorph, ringsToPath } from './morph.js';
 import { MAX_DT, scalar, stepPoints, stepScalar } from './spring.js';
-import { ParticleField } from './particles.js';
 
 const TITLE = 'មាន ភក្តី';
 const SUBTITLE = 'MEAN PHEAKDEY';
+
+const MORPH_STATES = [
+  '',
+  'ម',
+  'មា',
+  'មាន',
+  'មាន ',
+  'មាន ភ',
+  'មាន ភក',
+  'មាន ភក្',
+  'មាន ភក្ត',
+  'មាន ភក្តី',
+];
 const FONT_URL = 'https://raw.githubusercontent.com/seanghay/typing-morph/main/public/fonts/GoogleSans-Variable.ttf';
 
 const STIFFNESS = 220;
@@ -17,7 +29,6 @@ const LOOP_DURATION = 8000;
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const particleCanvas = document.getElementById('particleCanvas');
 const cameraWrap = document.getElementById('cameraWrap');
 const wrap = document.getElementById('morphWrap');
 const svg = document.getElementById('morphStage');
@@ -32,7 +43,6 @@ const motionField = document.getElementById('motionField');
 const motionSweep = document.getElementById('motionSweep');
 const sceneNumber = document.getElementById('sceneNumber');
 const centerGlow = document.getElementById('centerGlow');
-const particles = new ParticleField(particleCanvas, { reducedMotion: reduceMotion });
 
 let font;
 let face;
@@ -142,10 +152,6 @@ function pulseField(intensity = 1) {
       fill: 'forwards',
     },
   );
-}
-
-function burstParticles(progress = 0.5, finalBurst = false) {
-  particles.burst(Math.max(.25, progress), finalBurst);
 }
 
 function runMotionSweep() {
@@ -457,53 +463,31 @@ function render() {
   renderDirty = false;
 }
 
-function typingStates(text) {
-  const units = [];
-  const chars = Array.from(text);
-
-  for (let i = 0; i < chars.length; i++) {
-    const ch = chars[i];
-
-    if (ch.codePointAt(0) === 0x17D2 && i + 1 < chars.length) {
-      units.push(ch + chars[++i]);
-    } else {
-      units.push(ch);
-    }
-  }
-
-  const states = [''];
-  let acc = '';
-
-  for (const unit of units) {
-    acc += unit;
-    states.push(acc);
-  }
-
-  return states;
+function typingStates() {
+  return MORPH_STATES;
 }
 
 function hitMorph(progress = 0.5) {
   if (reduceMotion) return null;
 
-  pulseField(Math.max(.30, .72 - progress * .26));
-  burstParticles(progress, false);
+  pulseField(Math.max(.18, .42 - progress * .12));
   exciteField(progress);
   svg.classList.remove('settled');
 
-  const amplitude = Math.max(.18, 1 - progress * .72);
+  const amplitude = Math.max(.10, .42 - progress * .22);
   const animation = svg.animate(
     [
       {
-        transform: `translate3d(${(-2.1 * amplitude).toFixed(2)}px,${(3.2 * amplitude).toFixed(2)}px,0) scale(${(0.9975 + progress * .0015).toFixed(4)},${(1.0045 - progress * .0025).toFixed(4)})`,
+        transform: `translate3d(${(-.72 * amplitude).toFixed(2)}px,${(1.05 * amplitude).toFixed(2)}px,0) scale(.9995,1.0005)`,
       },
       {
-        transform: `translate3d(${(.8 * amplitude).toFixed(2)}px,${(-.8 * amplitude).toFixed(2)}px,0) scale(1.0015,.9995)`,
+        transform: `translate3d(${(.28 * amplitude).toFixed(2)}px,${(-.20 * amplitude).toFixed(2)}px,0) scale(1.0002,.9998)`,
         offset: .58,
       },
       { transform: 'translate3d(0,0,0) scale(1)' },
     ],
     {
-      duration: 390,
+      duration: 300,
       easing: 'cubic-bezier(.22,1,.36,1)',
       fill: 'none',
     },
@@ -653,62 +637,45 @@ function resetTimelineCycle(cycle) {
 }
 
 function buildTimeline() {
-  const states = typingStates(TITLE);
+  const states = typingStates();
   timelineLayouts = states.map((text) => layout(text, { wght: 780 }));
 
-  const firstEnd = Math.max(2, Math.ceil((states.length - 1) * .44));
-  const events = [];
-
-  // 01 / 02: atmosphere and camera entry are continuous from the master clock.
-  events.push({
-    time: 0,
-    run: () => {
-      applyPlan(timelineLayouts[0], { echo: 0 });
+  const events = [
+    {
+      time: 0,
+      run: () => applyPlan(timelineLayouts[0], { echo: 0 }),
     },
-  });
+  ];
 
-  // 03: first glyph forming, 1.2s -> 2.0s.
-  for (let i = 1; i <= firstEnd; i++) {
-    const progress = i / (states.length - 1);
-    const local = i / firstEnd;
+  // Exact cumulative Khmer component build:
+  // ម → មា → មាន → [space] → ភ → ភក → ភក្ → ភក្ត → ភក្តី
+  const morphStart = 1180;
+  const morphEnd = 3180;
+  const visibleSteps = timelineLayouts.length - 1;
+
+  for (let i = 1; i < timelineLayouts.length; i++) {
+    const local = i / visibleSteps;
+    const progress = i / visibleSteps;
+
     events.push({
-      time: 1200 + local * 760,
+      time: morphStart + local * (morphEnd - morphStart),
       run: () => {
         applyPlan(timelineLayouts[i], {
-          echo: i === 1 || i % 2 === 0 ? .18 : 0,
-        });
-        hitMorph(progress * .82);
-      },
-    });
-  }
-
-  // 04: sequential morph, 2.0s -> 3.0s.
-  const remaining = Math.max(1, states.length - 1 - firstEnd);
-  for (let i = firstEnd + 1; i < states.length; i++) {
-    const progress = i / (states.length - 1);
-    const local = (i - firstEnd) / remaining;
-    events.push({
-      time: 2000 + local * 930,
-      run: () => {
-        applyPlan(timelineLayouts[i], {
-          echo: i % 2 === 0 ? .14 : 0,
+          echo: i === 1 || i === 3 || i === 5 || i === 9 ? .10 : 0,
         });
         hitMorph(progress);
       },
     });
   }
 
-  // 05: complete / soft impact.
   events.push({
-    time: 3000,
+    time: 3260,
     run: () => {
-      applyPlan(timelineLayouts[timelineLayouts.length - 1], { echo: .22 });
-      pulseField(1.1);
-      burstParticles(1, true);
+      pulseField(.62);
+      spawnEcho(.14);
     },
   });
 
-  // 06: light sweep + English name.
   events.push({
     time: 4000,
     run: () => {
@@ -717,32 +684,28 @@ function buildTimeline() {
     },
   });
 
-  // 07: coming-soon lockup.
   events.push({
-    time: 4800,
+    time: 4780,
     run: () => {
       showComingSoon();
     },
   });
 
-  // 08: living state.
   events.push({
-    time: 5600,
+    time: 5580,
     run: () => {
       svg.classList.remove('settled');
       requestAnimationFrame(() => svg.classList.add('settled'));
     },
   });
 
-  // 09: camera pullback.
   events.push({
     time: 7000,
     run: () => {
-      spawnEcho(.42);
+      spawnEcho(.20);
     },
   });
 
-  // 10: graceful fade / clear before exact loop boundary.
   events.push({
     time: 7500,
     run: () => {
@@ -754,9 +717,9 @@ function buildTimeline() {
   });
 
   events.push({
-    time: 7720,
+    time: 7740,
     run: () => {
-      applyPlan(timelineLayouts[0], { echo: .16 });
+      applyPlan(timelineLayouts[0], { echo: .08 });
     },
   });
 
@@ -905,8 +868,6 @@ function frame(now) {
   const nx = pointerX / Math.max(1, innerWidth) - .5;
   const ny = pointerY / Math.max(1, innerHeight) - .5;
 
-  particles.setPointer(nx, ny);
-  particles.update(now, masterMs);
 
   const energyEase = 1 - Math.exp(-rawDt * 7.2);
   pointerEnergy += (targetPointerEnergy - pointerEnergy) * energyEase;
