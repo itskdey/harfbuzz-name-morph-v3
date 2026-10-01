@@ -587,6 +587,38 @@ function cameraOut() {
   return anim.finished.catch(() => {});
 }
 
+function playLiveSiteExit() {
+  if (reduceMotion) return;
+
+  cameraWrap.getAnimations().forEach((animation) => animation.cancel());
+
+  cameraWrap.animate(
+    [
+      {
+        opacity: 1,
+        transform: 'translate3d(0,0,0) scale(1)',
+        filter: 'blur(0)',
+      },
+      {
+        opacity: .95,
+        offset: .28,
+        transform: 'translate3d(1vw,5vh,0) rotate(.15deg) scale(1.08)',
+        filter: 'blur(.2px)',
+      },
+      {
+        opacity: .12,
+        transform: 'translate3d(-2vw,62vh,0) rotate(-.9deg) scale(2.35)',
+        filter: 'blur(7px)',
+      },
+    ],
+    {
+      duration: 760,
+      easing: 'cubic-bezier(.72,0,.18,1)',
+      fill: 'both',
+    },
+  );
+}
+
 function clamp01(value) {
   return Math.max(0, Math.min(1, value));
 }
@@ -615,8 +647,8 @@ function sceneForTime(ms) {
   if (ms < 4000) return 5;
   if (ms < 4800) return 6;
   if (ms < 5600) return 7;
-  if (ms < 7000) return 8;
-  if (ms < 7500) return 9;
+  if (ms < 7240) return 8;
+  if (ms < 7800) return 9;
   return 10;
 }
 
@@ -630,6 +662,9 @@ function resetTimelineCycle(cycle) {
   svg.classList.remove('settled');
   cameraWrap.getAnimations().forEach((animation) => animation.cancel());
   svg.getAnimations().forEach((animation) => animation.cancel());
+  cameraWrap.style.opacity = '1';
+  cameraWrap.style.filter = 'none';
+  cameraWrap.style.transform = 'translate3d(0,0,0) rotate(0deg) scale(1)';
   currentMorphAnimation = null;
 
   applyPlan(timelineLayouts[0], { echo: 0 });
@@ -699,15 +734,9 @@ function buildTimeline() {
     },
   });
 
+  // Exact exit behavior from the currently deployed meanpheakdey.site.
   events.push({
-    time: 7000,
-    run: () => {
-      spawnEcho(.20);
-    },
-  });
-
-  events.push({
-    time: 7500,
+    time: 7200,
     run: () => {
       subtitle.classList.remove('visible');
       subtitle.classList.add('leaving');
@@ -717,9 +746,18 @@ function buildTimeline() {
   });
 
   events.push({
-    time: 7740,
+    time: 7240,
     run: () => {
-      applyPlan(timelineLayouts[0], { echo: .08 });
+      spawnEcho(.34);
+      pulseField(.72);
+      playLiveSiteExit();
+    },
+  });
+
+  events.push({
+    time: 7820,
+    run: () => {
+      applyPlan(timelineLayouts[0], { echo: .06 });
     },
   });
 
@@ -752,12 +790,15 @@ function advanceTimeline(now) {
 }
 
 function updateCameraFromTimeline(ms) {
+  // From 7.24s onward, playLiveSiteExit() owns the camera layer exactly
+  // like the deployed meanpheakdey.site outro.
+  if (ms >= 7240) return;
+
   let opacity = 1;
   let x = 0;
   let y = 0;
   let rotation = 0;
   let scale = 1;
-  let blur = 0;
 
   if (ms < 500) {
     const p = easeInOutCubic(ms / 500);
@@ -777,31 +818,15 @@ function updateCameraFromTimeline(ms) {
     const breathe = Math.sin((ms - 1200) / 900) * .0018;
     scale = 1 + breathe;
     y = Math.sin((ms - 1200) / 1150) * .18;
-  } else if (ms < 7000) {
+  } else {
     opacity = 1;
     const breathe = Math.sin((ms - 5600) / 820) * .0025;
     scale = 1 + breathe;
     y = Math.sin((ms - 5600) / 1020) * .22;
-  } else if (ms < 7500) {
-    // Old-style outro begins: drift down first, then let blur catch up.
-    const p = easeInOutCubic((ms - 7000) / 500);
-    opacity = 1 - p * .10;
-    y = p * 7.5;
-    scale = 1 + p * .075;
-    rotation = p * .045;
-    blur = p * .85;
-  } else {
-    // Final release: continue downward, expand slightly, blur and disappear.
-    const p = easeInOutCubic((ms - 7500) / 500);
-    opacity = .90 * (1 - p);
-    y = 7.5 + p * 27.5;
-    scale = 1.075 + p * .34;
-    rotation = .045 - p * .26;
-    blur = .85 + p * 5.65;
   }
 
   cameraWrap.style.opacity = opacity.toFixed(3);
-  cameraWrap.style.filter = blur > .01 ? `blur(${blur.toFixed(2)}px)` : 'none';
+  cameraWrap.style.filter = 'none';
   cameraWrap.style.transform =
     `translate3d(${x.toFixed(3)}vw,${y.toFixed(3)}vh,0) rotate(${rotation.toFixed(3)}deg) scale(${scale.toFixed(4)})`;
 }
