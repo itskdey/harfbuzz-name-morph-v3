@@ -82,6 +82,7 @@ body::after {
   pointer-events: none;
   opacity: .95;
   contain: strict;
+  transition: opacity 520ms cubic-bezier(.22,1,.36,1);
 }
 
 body[data-phase="loading"] .particle-canvas {
@@ -823,41 +824,76 @@ body[data-phase="scene-6"] .ghost-word {
 }
 
 body[data-phase="scene-7"] .motion-field {
-  opacity: .72;
+  opacity: .80;
 }
 
 body[data-phase="scene-7"] .ghost-word {
-  opacity: .12;
-}
-
-body[data-phase="scene-7"] .orbit--outer {
-  animation-duration: 26s;
-}
-
-body[data-phase="scene-7"] .orbit--inner {
-  animation-duration: 16s;
-}
-
-body[data-phase="scene-8"] .topbar,
-body[data-phase="scene-8"] .footer,
-body[data-phase="scene-8"] .scene-index,
-body[data-phase="scene-8"] .manifesto {
-  opacity: .42;
+  opacity: .14;
 }
 
 body[data-phase="scene-8"] .motion-field {
-  opacity: .28;
+  opacity: .72;
 }
 
 body[data-phase="scene-8"] .ghost-word {
-  opacity: .3;
+  opacity: .11;
 }
 
-body[data-phase="scene-8"] .ghost-word--top {
+body[data-phase="scene-8"] .orbit--outer {
+  animation-duration: 28s;
+}
+
+body[data-phase="scene-8"] .orbit--inner {
+  animation-duration: 17s;
+}
+
+body[data-phase="scene-8"] .motion-arc {
+  opacity: .32;
+}
+
+body[data-phase="scene-9"] .topbar,
+body[data-phase="scene-9"] .footer,
+body[data-phase="scene-9"] .scene-index,
+body[data-phase="scene-9"] .manifesto {
+  opacity: .76;
+}
+
+body[data-phase="scene-9"] .motion-field {
+  opacity: .54;
+}
+
+body[data-phase="scene-9"] .ghost-word {
+  opacity: .20;
+}
+
+body[data-phase="scene-9"] .motion-arc {
+  opacity: .20;
+}
+
+body[data-phase="scene-10"] .topbar,
+body[data-phase="scene-10"] .footer,
+body[data-phase="scene-10"] .scene-index,
+body[data-phase="scene-10"] .manifesto {
+  opacity: .28;
+}
+
+body[data-phase="scene-10"] .motion-field {
+  opacity: .16;
+}
+
+body[data-phase="scene-10"] .ghost-word {
+  opacity: .28;
+}
+
+body[data-phase="scene-10"] .motion-arc {
+  opacity: .08;
+}
+
+body[data-phase="scene-10"] .ghost-word--top {
   transform: translate3d(-2vw,0,0);
 }
 
-body[data-phase="scene-8"] .ghost-word--bottom {
+body[data-phase="scene-10"] .ghost-word--bottom {
   transform: translate3d(2vw,0,0);
 }
 
@@ -1018,4 +1054,12 @@ body[data-phase="scene-8"] .ghost-word--bottom {
     transform: none !important;
     filter: none !important;
   }
+}
+
+body[data-phase="scene-9"] .particle-canvas {
+  opacity: .70;
+}
+
+body[data-phase="scene-10"] .particle-canvas {
+  opacity: .28;
 }
