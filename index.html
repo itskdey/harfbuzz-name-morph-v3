@@ -3,57 +3,73 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f5f5f1" />
-  <meta
-    name="description"
-    content="Mean Pheakdey — a new web experience is coming soon."
-  />
+  <meta name="theme-color" content="#f5f4ee" />
+  <meta name="description" content="Mean Pheakdey — a new web experience is coming soon." />
   <title>Mean Pheakdey — Coming Soon</title>
   <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin>
 </head>
 <body data-phase="loading">
   <main class="hero">
-    <header class="topbar" aria-label="Site status">
-      <div class="brand-mark">
-        <span class="brand-index">01</span>
-        <span class="brand-name">KDEY / DIGITAL</span>
-      </div>
+    <header class="topbar" aria-label="Site navigation">
+      <a class="monogram" href="#" aria-label="Mean Pheakdey home">MP</a>
+
+      <nav class="nav" aria-label="Primary">
+        <span>WORK</span>
+        <span>ABOUT</span>
+        <span>JOURNEY</span>
+      </nav>
 
       <div class="site-state">
         <span class="state-dot" aria-hidden="true"></span>
-        <span>WEB EXPERIENCE / IN DEVELOPMENT</span>
+        <span>COMING SOON</span>
       </div>
     </header>
 
-    <div id="motionField" class="motion-field" aria-hidden="true">
-      <div class="kinetic-word kinetic-word--a">COMING</div>
-      <div class="kinetic-word kinetic-word--b">SOON</div>
+    <aside class="scene-index" aria-hidden="true">
+      <span id="sceneNumber" class="scene-number">01</span>
+      <span class="scene-divider"></span>
+      <span class="scene-total">08</span>
+    </aside>
 
-      <div class="orbit orbit--a">
+    <aside class="manifesto" aria-hidden="true">
+      <span>A</span>
+      <strong>BOLDER</strong>
+      <span>SOFTER</span>
+      <strong>BRIGHTER</strong>
+      <span>TOMORROW</span>
+    </aside>
+
+    <div class="ghost-word ghost-word--top" aria-hidden="true">COMING</div>
+    <div class="ghost-word ghost-word--bottom" aria-hidden="true">SOON</div>
+
+    <div id="motionField" class="motion-field" aria-hidden="true">
+      <div class="axis axis--x"></div>
+      <div class="axis axis--y"></div>
+
+      <div class="orbit orbit--outer">
         <span class="orbit-node orbit-node--a"></span>
         <span class="orbit-node orbit-node--b"></span>
       </div>
-
-      <div class="orbit orbit--b">
+      <div class="orbit orbit--wide">
         <span class="orbit-node orbit-node--c"></span>
       </div>
-
-      <div id="impactPulse" class="impact-pulse"></div>
-      <div class="motion-disc motion-disc--a"></div>
-      <div class="motion-disc motion-disc--b"></div>
+      <div class="orbit orbit--inner">
+        <span class="orbit-node orbit-node--d"></span>
+      </div>
 
       <div class="motion-arc motion-arc--a"></div>
       <div class="motion-arc motion-arc--b"></div>
+      <div class="motion-disc motion-disc--a"></div>
+      <div class="motion-disc motion-disc--b"></div>
+      <div class="motion-disc motion-disc--c"></div>
+
+      <div class="center-glow"></div>
+      <div id="impactPulse" class="impact-pulse"></div>
       <div id="motionSweep" class="motion-sweep"></div>
       <div id="particleLayer" class="particle-layer"></div>
     </div>
 
-    <section class="hero-core" aria-label="Coming soon">
-      <div id="eyebrow" class="eyebrow" aria-hidden="true">
-        <span>WEB / 01</span>
-        <span>SHAPING THE NEXT VERSION</span>
-      </div>
-
+    <section class="hero-core" aria-label="Mean Pheakdey coming soon">
       <div id="morphWrap" class="morph-wrap" aria-label="មាន ភក្តី">
         <svg id="morphStage" class="morph-stage" role="img" aria-label="មាន ភក្តី">
           <g id="echoLayer" transform="scale(1,-1)" aria-hidden="true"></g>
@@ -63,16 +79,16 @@
 
       <div id="subtitle" class="subtitle" aria-label="Mean Pheakdey"></div>
 
-      <div id="comingSoon" class="coming-soon" aria-label="Web experience coming soon">
-        <span class="coming-kicker">NEW WEB EXPERIENCE</span>
+      <div id="comingSoon" class="coming-soon" aria-label="Coming soon">
         <span id="comingTitle" class="coming-title" aria-hidden="true"></span>
+        <span class="coming-rule" aria-hidden="true"></span>
       </div>
     </section>
 
     <footer class="footer">
-      <span>HarfBuzz / outline motion</span>
-      <span class="footer-center">TYPE · CODE · MOTION</span>
-      <span>2026 / WORK IN PROGRESS</span>
+      <span>MEAN PHEAKDEY</span>
+      <span class="footer-line" aria-hidden="true"></span>
+      <span class="footer-status">CREATIVE IN PROGRESS <i aria-hidden="true"></i></span>
     </footer>
 
     <div id="status" class="status" aria-live="polite"></div>
