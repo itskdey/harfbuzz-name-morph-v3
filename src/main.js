@@ -28,6 +28,7 @@ const impactPulse = document.getElementById('impactPulse');
 const motionField = document.getElementById('motionField');
 const particleLayer = document.getElementById('particleLayer');
 const motionSweep = document.getElementById('motionSweep');
+const sceneNumber = document.getElementById('sceneNumber');
 
 let font;
 let face;
@@ -87,6 +88,11 @@ function buildComingSoon() {
 
 function setPhase(phase) {
   document.body.dataset.phase = phase;
+
+  const match = /^scene-(\d+)$/.exec(phase);
+  if (match && sceneNumber) {
+    sceneNumber.textContent = String(Number(match[1])).padStart(2, '0');
+  }
 }
 
 function showComingSoon() {
@@ -624,7 +630,7 @@ function cameraIn() {
       },
     ],
     {
-      duration: 2050,
+      duration: 780,
       easing: 'cubic-bezier(.16,1,.3,1)',
       fill: 'both',
     },
@@ -662,7 +668,7 @@ function cameraOut() {
       },
     ],
     {
-      duration: 980,
+      duration: 940,
       easing: 'cubic-bezier(.72,0,.18,1)',
       fill: 'both',
     },
@@ -671,94 +677,100 @@ function cameraOut() {
   return anim.finished.catch(() => {});
 }
 
-async function typePass({ cinematic = true } = {}) {
+async function storyboardPass() {
+  const states = typingStates(TITLE);
+  const splitAt = Math.max(2, Math.ceil((states.length - 1) * .46));
+
   finishedTyping = false;
   cinematicBusy = true;
-  setPhase('intro');
-  svg.classList.remove('settled');
+  subtitle.classList.remove('visible', 'leaving');
   comingSoon.classList.remove('visible', 'leaving');
+  svg.classList.remove('settled');
 
-  const states = typingStates(TITLE);
+  // 01 — 0.0s → 0.8s / Ambient loading frame.
+  setPhase('scene-1');
+  applyPlan(layout('', { wght: 720 }), { echo: .18 });
+  await sleep(800);
 
-  applyPlan(layout('', { wght: 760 }), { echo: .65 });
-  await sleep(cinematic ? 110 : 40);
+  // 02 — 0.8s → 1.6s / Camera pushes into the orbital composition.
+  setPhase('scene-2');
+  await cameraIn();
 
-  const camera = cinematic ? cameraIn() : Promise.resolve();
-
-  for (let i = 1; i < states.length; i++) {
+  // 03 — 1.6s → 2.4s / First Khmer forms enter.
+  setPhase('scene-3');
+  for (let i = 1; i <= splitAt; i++) {
     const progress = i / (states.length - 1);
-    const weight = 690 + progress * 70;
-
-    applyPlan(layout(states[i], { wght: weight }), {
-      echo: i > 1 ? Math.max(.28, .72 - progress * .30) : .18,
+    applyPlan(layout(states[i], { wght: 650 + progress * 95 }), {
+      echo: Math.max(.24, .66 - progress * .18),
     });
-
-    hitMorph(progress);
-
-    const cadence = [0, 18, -8, 26, 2, 20, -4, 14, 5, 22, 0];
-    const base = cinematic ? 122 : 150;
-    const extra = states[i].endsWith(' ') ? -32 : cadence[i % cadence.length];
-    await sleep(Math.max(82, base + extra));
+    hitMorph(progress * .82);
+    await sleep(Math.max(92, 760 / splitAt));
   }
 
-  await camera;
-  await sleep(230);
+  // 04 — 2.4s → 3.2s / Sequential morph completes the name.
+  setPhase('scene-4');
+  const remaining = Math.max(1, states.length - 1 - splitAt);
+  for (let i = splitAt + 1; i < states.length; i++) {
+    const progress = i / (states.length - 1);
+    applyPlan(layout(states[i], { wght: 700 + progress * 70 }), {
+      echo: Math.max(.18, .52 - progress * .2),
+    });
+    hitMorph(progress);
+    await sleep(Math.max(92, 760 / remaining));
+  }
 
-  applyPlan(layout(TITLE, { wght: 780 }), { echo: .18 });
+  // 05 — 3.2s → 4.0s / Final physical lock + strongest field response.
+  setPhase('scene-5');
+  applyPlan(layout(TITLE, { wght: 790 }), { echo: .28 });
   hitMorph(1);
-
-  // Let the final physical impact reach exactly zero before handing
-  // transform control to the idle animation. This prevents the end jump.
-  await finishMorphImpact();
-  await sleep(80);
-
+  pulseField(1.18);
   burstParticles(1, true);
+  await finishMorphImpact();
+  await sleep(380);
+
+  // 06 — 4.0s → 4.8s / Editorial reveal layer.
+  setPhase('scene-6');
   runMotionSweep();
-  await sleep(110);
-
   showSubtitle();
-  await sleep(300);
+  await sleep(250);
   showComingSoon();
-  setPhase('hold');
+  await sleep(550);
 
-  // Start the idle animation from a true zero transform.
+  // 07 — 4.8s → 6.4s / Premium living hold.
+  setPhase('scene-7');
   svg.classList.remove('settled');
   void svg.getBoundingClientRect();
   svg.classList.add('settled');
-
   lastWeightPlan = performance.now();
-  targetWeight = 780;
+  targetWeight = 790;
   finishedTyping = true;
   cinematicBusy = false;
+  await sleep(1600);
+
+  // 08 — 6.4s → 8.0s / Fade, camera release and reset.
+  cinematicBusy = true;
+  finishedTyping = false;
+  setPhase('scene-8');
+
+  await Promise.all([
+    hideSubtitle(),
+    hideComingSoon(),
+  ]);
+
+  spawnEcho(.7);
+  const exit = cameraOut();
+  await sleep(620);
+  applyPlan(layout('', { wght: 730 }), { echo: .34 });
+  await exit;
+  await sleep(260);
 }
 
 async function cinematicLoop() {
   const myToken = ++loopToken;
 
-  await typePass({ cinematic: true });
-
   while (myToken === loopToken) {
-    await sleep(4400);
+    await storyboardPass();
     if (myToken !== loopToken) break;
-
-    cinematicBusy = true;
-    finishedTyping = false;
-    setPhase('exit');
-
-    await Promise.all([
-      hideSubtitle(),
-      hideComingSoon(),
-    ]);
-
-    spawnEcho(.9);
-    pulseField(.9);
-    await cameraOut();
-
-    applyPlan(layout('', { wght: 760 }), { echo: .5 });
-    await sleep(180);
-
-    if (myToken !== loopToken) break;
-    await typePass({ cinematic: true });
   }
 }
 
@@ -768,7 +780,7 @@ function updateIdleMorph(now) {
 
   // Keep the post-intro weight motion subtle. Large 610↔860 jumps
   // looked like a second unintended morph immediately after settling.
-  targetWeight = targetWeight > 780 ? 754 : 806;
+  targetWeight = targetWeight > 790 ? 766 : 808;
   applyPlan(layout(TITLE, { wght: targetWeight }), { echo: .035 });
   lastWeightPlan = now;
 }
@@ -869,10 +881,10 @@ async function init() {
     await sleep(180);
 
     if (reduceMotion) {
-      applyPlan(layout(TITLE, { wght: 780 }));
+      applyPlan(layout(TITLE, { wght: 790 }));
       subtitle.classList.add('visible');
       comingSoon.classList.add('visible');
-      setPhase('hold');
+      setPhase('scene-7');
       finishedTyping = true;
       return;
     }
