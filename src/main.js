@@ -21,6 +21,9 @@ const echoLayer = document.getElementById('echoLayer');
 const layer = document.getElementById('glyphLayer');
 const subtitle = document.getElementById('subtitle');
 const status = document.getElementById('status');
+const comingSoon = document.getElementById('comingSoon');
+const comingTitle = document.getElementById('comingTitle');
+const impactPulse = document.getElementById('impactPulse');
 
 let font;
 let face;
@@ -60,6 +63,65 @@ function buildSubtitle() {
     span.style.setProperty('--ri', chars.length - 1 - i);
     subtitle.appendChild(span);
   });
+}
+
+function buildComingSoon() {
+  const text = 'COMING SOON';
+  comingTitle.innerHTML = '';
+  const chars = Array.from(text);
+
+  chars.forEach((ch, i) => {
+    const span = document.createElement('span');
+    span.className = 'coming-char';
+    span.textContent = ch;
+    span.style.setProperty('--i', i);
+    span.style.setProperty('--ri', chars.length - 1 - i);
+    comingTitle.appendChild(span);
+  });
+}
+
+function setPhase(phase) {
+  document.body.dataset.phase = phase;
+}
+
+function showComingSoon() {
+  comingSoon.classList.remove('leaving');
+  void comingSoon.offsetWidth;
+  comingSoon.classList.add('visible');
+}
+
+async function hideComingSoon() {
+  comingSoon.classList.remove('visible');
+  comingSoon.classList.add('leaving');
+  if (!reduceMotion) await sleep(380);
+}
+
+function pulseField(intensity = 1) {
+  if (reduceMotion || !impactPulse) return;
+
+  impactPulse.getAnimations().forEach((animation) => animation.cancel());
+  impactPulse.animate(
+    [
+      {
+        opacity: .22 * intensity,
+        transform: 'translate(-50%, -50%) scale(.4)',
+      },
+      {
+        opacity: .10 * intensity,
+        offset: .45,
+        transform: 'translate(-50%, -50%) scale(1.35)',
+      },
+      {
+        opacity: 0,
+        transform: 'translate(-50%, -50%) scale(2.4)',
+      },
+    ],
+    {
+      duration: 900,
+      easing: 'cubic-bezier(.16,1,.3,1)',
+      fill: 'forwards',
+    },
+  );
 }
 
 function showSubtitle() {
@@ -351,6 +413,8 @@ function typingStates(text) {
 function hitMorph(progress = 0.5) {
   if (reduceMotion) return;
 
+  pulseField(Math.max(.35, 1 - progress * .45));
+
   svg.classList.remove('settled');
   svg.classList.remove('morph-hit');
   void svg.getBoundingClientRect();
@@ -450,7 +514,9 @@ function cameraOut() {
 async function typePass({ cinematic = true } = {}) {
   finishedTyping = false;
   cinematicBusy = true;
+  setPhase('intro');
   svg.classList.remove('settled');
+  comingSoon.classList.remove('visible', 'leaving');
 
   const states = typingStates(TITLE);
 
@@ -482,6 +548,9 @@ async function typePass({ cinematic = true } = {}) {
 
   await sleep(320);
   showSubtitle();
+  await sleep(260);
+  showComingSoon();
+  setPhase('hold');
   svg.classList.add('settled');
 
   finishedTyping = true;
@@ -500,9 +569,15 @@ async function cinematicLoop() {
 
     cinematicBusy = true;
     finishedTyping = false;
+    setPhase('exit');
 
-    await hideSubtitle();
+    await Promise.all([
+      hideSubtitle(),
+      hideComingSoon(),
+    ]);
+
     spawnEcho(.9);
+    pulseField(.9);
     await cameraOut();
 
     applyPlan(layout('', { wght: 760 }), { echo: .5 });
@@ -565,6 +640,10 @@ function frame(now) {
 
   document.documentElement.style.setProperty('--tilt-x', `${(-ny * .72).toFixed(3)}deg`);
   document.documentElement.style.setProperty('--tilt-y', `${(nx * .84).toFixed(3)}deg`);
+  document.documentElement.style.setProperty('--field-x', `${(nx * -16).toFixed(2)}px`);
+  document.documentElement.style.setProperty('--field-y', `${(ny * -12).toFixed(2)}px`);
+  document.documentElement.style.setProperty('--focus-x', `${(50 + nx * 10).toFixed(2)}%`);
+  document.documentElement.style.setProperty('--focus-y', `${(50 + ny * 8).toFixed(2)}%`);
 
   requestAnimationFrame(frame);
 }
@@ -572,6 +651,8 @@ function frame(now) {
 async function init() {
   try {
     buildSubtitle();
+    buildComingSoon();
+    setPhase('loading');
 
     const fontData = await fetch(FONT_URL).then((r) => {
       if (!r.ok) throw new Error(`Font request failed: ${r.status}`);
@@ -591,6 +672,8 @@ async function init() {
     if (reduceMotion) {
       applyPlan(layout(TITLE, { wght: 780 }));
       subtitle.classList.add('visible');
+      comingSoon.classList.add('visible');
+      setPhase('hold');
       finishedTyping = true;
       return;
     }
