@@ -262,7 +262,7 @@ body::after {
   transform-origin: 50% 50%;
   pointer-events: none;
   contain: layout paint style;
-  will-change: transform, opacity;
+  will-change: transform, opacity, filter;
   transform: translate3d(calc(-50% + var(--field-x)), calc(-50% + var(--field-y)), 0)
     rotate(var(--field-rot))
     scale(var(--field-scale));
