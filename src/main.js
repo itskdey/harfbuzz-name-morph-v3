@@ -757,6 +757,7 @@ function updateCameraFromTimeline(ms) {
   let y = 0;
   let rotation = 0;
   let scale = 1;
+  let blur = 0;
 
   if (ms < 500) {
     const p = easeInOutCubic(ms / 500);
@@ -782,20 +783,25 @@ function updateCameraFromTimeline(ms) {
     scale = 1 + breathe;
     y = Math.sin((ms - 5600) / 1020) * .22;
   } else if (ms < 7500) {
+    // Old-style outro begins: drift down first, then let blur catch up.
     const p = easeInOutCubic((ms - 7000) / 500);
-    opacity = 1 - p * .12;
-    y = -p * 1.1;
-    scale = 1 - p * .11;
-    rotation = p * .06;
+    opacity = 1 - p * .10;
+    y = p * 7.5;
+    scale = 1 + p * .075;
+    rotation = p * .045;
+    blur = p * .85;
   } else {
+    // Final release: continue downward, expand slightly, blur and disappear.
     const p = easeInOutCubic((ms - 7500) / 500);
-    opacity = .88 * (1 - p);
-    y = -1.1 - p * 3.5;
-    scale = .89 - p * .08;
-    rotation = .06 - p * .10;
+    opacity = .90 * (1 - p);
+    y = 7.5 + p * 27.5;
+    scale = 1.075 + p * .34;
+    rotation = .045 - p * .26;
+    blur = .85 + p * 5.65;
   }
 
   cameraWrap.style.opacity = opacity.toFixed(3);
+  cameraWrap.style.filter = blur > .01 ? `blur(${blur.toFixed(2)}px)` : 'none';
   cameraWrap.style.transform =
     `translate3d(${x.toFixed(3)}vw,${y.toFixed(3)}vh,0) rotate(${rotation.toFixed(3)}deg) scale(${scale.toFixed(4)})`;
 }
