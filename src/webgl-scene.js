@@ -75,6 +75,36 @@ function makeColorTexture(size = 384) {
 
   ctx.putImageData(image, 0, 0);
 
+  // Editorial marks are intentionally faint; the WebGL layer should feel
+  // dimensional without competing with the HarfBuzz name.
+  ctx.save();
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.lineCap = 'round';
+
+  ctx.strokeStyle = 'rgba(17,17,15,.055)';
+  ctx.lineWidth = size * .006;
+  ctx.beginPath();
+  ctx.arc(size * .50, size * .51, size * .29, Math.PI * 1.05, Math.PI * 1.88);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(255,79,18,.085)';
+  ctx.lineWidth = size * .009;
+  ctx.beginPath();
+  ctx.moveTo(size * .08, size * .63);
+  ctx.bezierCurveTo(
+    size * .30, size * .47,
+    size * .61, size * .69,
+    size * .92, size * .39,
+  );
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(17,17,15,.035)';
+  ctx.beginPath();
+  ctx.arc(size * .24, size * .27, size * .035, 0, TAU);
+  ctx.fill();
+
+  ctx.restore();
+
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.MirroredRepeatWrapping;
@@ -208,6 +238,7 @@ export class WebGLBackdrop {
     this.pointer = new THREE.Vector2();
     this.pointerTarget = new THREE.Vector2();
     this.lastTime = performance.now();
+    this.frameIndex = 0;
     this.fpsEMA = 60;
     this.slowFrames = 0;
 
@@ -321,6 +352,9 @@ export class WebGLBackdrop {
   update(now, timelineMs) {
     if (!this.enabled) return;
 
+    this.frameIndex++;
+    if (this.quality === 'low' && this.frameIndex % 2 === 1) return;
+
     const dt = Math.min(.05, Math.max(.001, (now - this.lastTime) / 1000));
     this.lastTime = now;
 
@@ -334,6 +368,11 @@ export class WebGLBackdrop {
       this.quality = 'medium';
       this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.2));
       document.documentElement.dataset.webglQuality = 'medium';
+      this.slowFrames = 0;
+    } else if (this.slowFrames > 180 && this.quality === 'medium') {
+      this.quality = 'low';
+      this.renderer.setPixelRatio(1);
+      document.documentElement.dataset.webglQuality = 'low';
       this.slowFrames = 0;
     }
 
