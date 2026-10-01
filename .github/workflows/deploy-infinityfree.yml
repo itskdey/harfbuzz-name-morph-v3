@@ -1,0 +1,58 @@
+name: Deploy to InfinityFree
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: infinityfree-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Check InfinityFree credentials
+        env:
+          FTP_SERVER: ${{ secrets.INFINITYFREE_FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.INFINITYFREE_FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.INFINITYFREE_FTP_PASSWORD }}
+        run: |
+          test -n "$FTP_SERVER" || (echo "Missing GitHub secret: INFINITYFREE_FTP_SERVER" && exit 1)
+          test -n "$FTP_USERNAME" || (echo "Missing GitHub secret: INFINITYFREE_FTP_USERNAME" && exit 1)
+          test -n "$FTP_PASSWORD" || (echo "Missing GitHub secret: INFINITYFREE_FTP_PASSWORD" && exit 1)
+
+      - name: Deploy dist to InfinityFree
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.INFINITYFREE_FTP_SERVER }}
+          username: ${{ secrets.INFINITYFREE_FTP_USERNAME }}
+          password: ${{ secrets.INFINITYFREE_FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: ./dist/
+          server-dir: /htdocs/
+          dangerous-clean-slate: false
