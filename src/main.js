@@ -654,7 +654,7 @@ function buildTimeline() {
   const visibleSteps = timelineLayouts.length - 1;
 
   for (let i = 1; i < timelineLayouts.length; i++) {
-    const local = i / visibleSteps;
+    const local = visibleSteps === 1 ? 1 : (i - 1) / (visibleSteps - 1);
     const progress = i / visibleSteps;
 
     events.push({
