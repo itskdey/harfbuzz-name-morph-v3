@@ -2,6 +2,7 @@ import * as hb from 'harfbuzzjs';
 import './style.css';
 import { clearOutlineCache, buildMorph, ringsToPath } from './morph.js';
 import { MAX_DT, scalar, stepPoints, stepScalar } from './spring.js';
+import { WebGLBackdrop } from './webgl-scene.js';
 
 const TITLE = 'មាន ភក្តី';
 const SUBTITLE = 'MEAN PHEAKDEY';
@@ -28,6 +29,9 @@ const EPS_UNIT = 0.002;
 const LOOP_DURATION = 8000;
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const webglCanvas = document.getElementById('webglBackdrop');
+const webgl = new WebGLBackdrop(webglCanvas, { reducedMotion: reduceMotion });
 
 const cameraWrap = document.getElementById('cameraWrap');
 const wrap = document.getElementById('morphWrap');
@@ -899,6 +903,8 @@ function frame(now) {
   const nx = pointerX / Math.max(1, innerWidth) - .5;
   const ny = pointerY / Math.max(1, innerHeight) - .5;
 
+  webgl.setPointer(nx, ny);
+  webgl.update(now, masterMs);
 
   const energyEase = 1 - Math.exp(-rawDt * 7.2);
   pointerEnergy += (targetPointerEnergy - pointerEnergy) * energyEase;
