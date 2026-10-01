@@ -63,6 +63,9 @@ let currentScene = 0;
 let nextTimelineEvent = 0;
 let timelineEvents = [];
 let timelineLayouts = [];
+let depthScene = null;
+let frameId = null;
+let hiddenAt = 0;
 
 const pathEls = new Map();
 
@@ -437,6 +440,7 @@ function currentPaths() {
 
 function render() {
   const paths = currentPaths();
+  depthScene?.updatePaths(paths);
   const live = new Set(paths.map((p) => p.id));
 
   for (const p of paths) {
@@ -469,6 +473,7 @@ function typingStates() {
 
 function hitMorph(progress = 0.5) {
   if (reduceMotion) return null;
+  depthScene?.hit(progress);
 
   pulseField(Math.max(.18, .42 - progress * .12));
   exciteField(progress);
@@ -839,7 +844,32 @@ document.addEventListener('pointerleave', () => {
 });
 
 let last = performance.now();
-const started = last;
+let started = last;
+const pausedAnimations = new Set();
+
+function handleVisibilityChange() {
+  document.body.classList.toggle('motion-paused', document.hidden);
+  if (document.hidden) {
+    hiddenAt = performance.now();
+    cancelAnimationFrame(frameId);
+    document.getAnimations().forEach((animation) => {
+      if (animation.playState === 'running') {
+        animation.pause();
+        pausedAnimations.add(animation);
+      }
+    });
+  } else {
+    const now = performance.now();
+    if (timelineReady && hiddenAt) timelineStart += now - hiddenAt;
+    if (hiddenAt) started += now - hiddenAt;
+    hiddenAt = 0;
+    last = now;
+    pausedAnimations.forEach((animation) => animation.play());
+    pausedAnimations.clear();
+    if (timelineReady && !reduceMotion) frameId = requestAnimationFrame(frame);
+  }
+}
+document.addEventListener('visibilitychange', handleVisibilityChange);
 
 function frame(now) {
   const rawDt = Math.min(1 / 20, Math.max(0, (now - last) / 1000));
@@ -871,13 +901,14 @@ function frame(now) {
   pointerX += (targetX - pointerX) * pointerEase;
   pointerY += (targetY - pointerY) * pointerEase;
 
-  const nx = pointerX / Math.max(1, innerWidth) - .5;
-  const ny = pointerY / Math.max(1, innerHeight) - .5;
+  const nx = Math.max(-.5, Math.min(.5, pointerX / Math.max(1, innerWidth) - .5));
+  const ny = Math.max(-.5, Math.min(.5, pointerY / Math.max(1, innerHeight) - .5));
 
 
   const energyEase = 1 - Math.exp(-rawDt * 7.2);
   pointerEnergy += (targetPointerEnergy - pointerEnergy) * energyEase;
   targetPointerEnergy *= Math.exp(-rawDt * 8.2);
+  depthScene?.tick(t, rawDt, nx, ny, pointerEnergy, masterMs);
 
   const motionCss = [
     `--energy:${pointerEnergy.toFixed(3)}`,
@@ -896,7 +927,7 @@ function frame(now) {
     lastMotionCss = motionCss;
   }
 
-  requestAnimationFrame(frame);
+  if (!document.hidden) frameId = requestAnimationFrame(frame);
 }
 
 async function init() {
@@ -926,22 +957,36 @@ async function init() {
     stageViewBox = `${-padX} ${-asc - padY} ${contentWidth + padX * 2} ${asc - desc + padY * 2}`;
     svg.setAttribute('viewBox', stageViewBox);
 
-    requestAnimationFrame(frame);
-    await sleep(180);
-
     buildTimeline();
 
     if (reduceMotion) {
       applyPlan(timelineLayouts[timelineLayouts.length - 1]);
+      store.width.pos = store.width.target;
+      for (const entry of store.clusters.values()) {
+        entry.opacity.pos = entry.opacity.target;
+        for (const ring of entry.rings.values()) ring.pos.set(ring.target);
+      }
+      render();
+      cameraWrap.style.opacity = '1';
       subtitle.classList.add('visible');
       comingSoon.classList.add('visible');
       setPhase('scene-8');
       return;
     }
 
+    try {
+      const { createDepthScene } = await import('./depth-scene.js');
+      depthScene = createDepthScene(wrap, stageViewBox);
+    } catch (error) {
+      console.warn('Three.js unavailable; using the SVG motion renderer.', error);
+    }
+
     timelineStart = performance.now();
+    if (document.hidden) hiddenAt = timelineStart;
     timelineReady = true;
     resetTimelineCycle(0);
+    last = timelineStart;
+    if (!document.hidden) frameId = requestAnimationFrame(frame);
   } catch (error) {
     console.error(error);
     status.textContent = `Could not start HarfBuzz: ${error.message}`;
@@ -950,3 +995,12 @@ async function init() {
 }
 
 init();
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    cancelAnimationFrame(frameId);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    pausedAnimations.clear();
+    depthScene?.dispose();
+  });
+}

@@ -28,6 +28,18 @@ The HarfBuzz morph remains the hero. The rest of the page now behaves like one c
 - no grid, no underline, no cursor
 - reduced-motion fallback
 
+## Three.js depth motion
+
+The hero uses a lazy-loaded Three.js scene with a perspective camera. The live
+HarfBuzz outlines feed a shared canvas mask across eight shallow depth slices.
+A vertex wave and damped recoil follow the existing shaping timeline; pointer
+movement smoothly rotates the volume. The warm paper and ink palette stays intact.
+
+Texture uploads happen only while the contours change. Pixel density is capped
+at 1.75, geometry is reused, and rendering pauses while the page is hidden.
+WebGL failure or context loss reveals the SVG renderer. Reduced motion skips
+Three.js and renders the completed name immediately without an animation loop.
+
 ## Development
 
 ```bash

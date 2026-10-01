@@ -489,6 +489,7 @@ body::after {
 }
 
 .morph-wrap {
+  position: relative;
   width: 100%;
   height: 100%;
   display: grid;
@@ -514,6 +515,28 @@ body::after {
 
 .morph-stage path {
   fill: var(--ink);
+}
+
+.depth-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.has-depth #glyphLayer {
+  visibility: hidden;
+}
+
+.has-depth {
+  transform: none;
+}
+
+.motion-paused *,
+.motion-paused *::before,
+.motion-paused *::after {
+  animation-play-state: paused !important;
 }
 
 #echoLayer path {
