@@ -12,6 +12,7 @@ const DAMPING = 29;
 const EPS_POS = 0.4;
 const EPS_VEL = 0.4;
 const EPS_UNIT = 0.002;
+const IDLE_MORPH_DELAY = 2300;
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -34,7 +35,7 @@ let variationKey = '';
 let finishedTyping = false;
 let cinematicBusy = false;
 let lastWeightPlan = 0;
-let targetWeight = 760;
+let targetWeight = 780;
 let currentMorphAnimation = null;
 let loopToken = 0;
 
@@ -411,34 +412,64 @@ function typingStates(text) {
 }
 
 function hitMorph(progress = 0.5) {
-  if (reduceMotion) return;
+  if (reduceMotion) return null;
 
   pulseField(Math.max(.35, 1 - progress * .45));
-
   svg.classList.remove('settled');
-  svg.classList.remove('morph-hit');
-  void svg.getBoundingClientRect();
-  svg.classList.add('morph-hit');
 
-  if (currentMorphAnimation) currentMorphAnimation.cancel();
+  if (currentMorphAnimation) {
+    currentMorphAnimation.cancel();
+    currentMorphAnimation = null;
+  }
 
   const amplitude = 1 - progress;
-  currentMorphAnimation = svg.animate(
+  const animation = svg.animate(
     [
       {
-        transform: `translate3d(${(-12 * amplitude).toFixed(1)}px,${(22 * amplitude).toFixed(1)}px,0) scale(${(0.985 + progress * .01).toFixed(3)},${(1.035 - progress * .015).toFixed(3)})`,
+        transform: `translate3d(${(-10 * amplitude).toFixed(1)}px,${(18 * amplitude).toFixed(1)}px,0) scale(${(0.988 + progress * .008).toFixed(3)},${(1.028 - progress * .012).toFixed(3)})`,
       },
       {
-        transform: `translate3d(${(5 * amplitude).toFixed(1)}px,${(-5 * amplitude).toFixed(1)}px,0) scale(1.008,.996)`,
-        offset: .52,
+        transform: `translate3d(${(3.5 * amplitude).toFixed(1)}px,${(-3.5 * amplitude).toFixed(1)}px,0) scale(1.005,.998)`,
+        offset: .56,
       },
       { transform: 'translate3d(0,0,0) scale(1)' },
     ],
     {
-      duration: 620,
+      duration: 560,
       easing: 'cubic-bezier(.16,1,.3,1)',
+      fill: 'none',
     },
   );
+
+  currentMorphAnimation = animation;
+
+  animation.finished
+    .catch(() => {})
+    .finally(() => {
+      if (currentMorphAnimation === animation) {
+        currentMorphAnimation = null;
+      }
+    });
+
+  return animation;
+}
+
+async function finishMorphImpact() {
+  const animation = currentMorphAnimation;
+  if (!animation) return;
+
+  try {
+    await animation.finished;
+  } catch {
+    // A newer shaping step may cancel the previous impact animation.
+  }
+
+  if (currentMorphAnimation === animation) {
+    currentMorphAnimation = null;
+  }
+
+  // Force a clean transform baseline before the idle motion takes over.
+  svg.style.transform = '';
 }
 
 function cameraIn() {
@@ -543,19 +574,28 @@ async function typePass({ cinematic = true } = {}) {
   await camera;
   await sleep(230);
 
-  applyPlan(layout(TITLE, { wght: 780 }), { echo: .24 });
+  applyPlan(layout(TITLE, { wght: 780 }), { echo: .18 });
   hitMorph(1);
 
-  await sleep(320);
+  // Let the final physical impact reach exactly zero before handing
+  // transform control to the idle animation. This prevents the end jump.
+  await finishMorphImpact();
+  await sleep(90);
+
   showSubtitle();
   await sleep(260);
   showComingSoon();
   setPhase('hold');
+
+  // Start the idle animation from a true zero transform.
+  svg.classList.remove('settled');
+  void svg.getBoundingClientRect();
   svg.classList.add('settled');
 
+  lastWeightPlan = performance.now();
+  targetWeight = 780;
   finishedTyping = true;
   cinematicBusy = false;
-  lastWeightPlan = performance.now();
 }
 
 async function cinematicLoop() {
@@ -590,10 +630,12 @@ async function cinematicLoop() {
 
 function updateIdleMorph(now) {
   if (!finishedTyping || cinematicBusy) return;
-  if (now - lastWeightPlan < 1650) return;
+  if (now - lastWeightPlan < IDLE_MORPH_DELAY) return;
 
-  targetWeight = targetWeight > 720 ? 610 : 860;
-  applyPlan(layout(TITLE, { wght: targetWeight }), { echo: .12 });
+  // Keep the post-intro weight motion subtle. Large 610↔860 jumps
+  // looked like a second unintended morph immediately after settling.
+  targetWeight = targetWeight > 780 ? 742 : 818;
+  applyPlan(layout(TITLE, { wght: targetWeight }), { echo: .035 });
   lastWeightPlan = now;
 }
 

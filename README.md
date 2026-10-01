@@ -44,3 +44,24 @@ npm run build
 Upload the contents of `dist/` to any static host.
 
 For InfinityFree, upload the built files inside `htdocs/`.
+
+
+## Automatic deploy to InfinityFree
+
+This repo includes `.github/workflows/deploy-infinityfree.yml`.
+
+After the workflow is merged to `main`, every push to `main` will:
+
+1. install dependencies with `npm ci`
+2. build the Vite app with `npm run build`
+3. upload the contents of `dist/` to InfinityFree `/htdocs/`
+
+Add these repository Actions secrets before the first production deploy:
+
+- `INFINITYFREE_FTP_SERVER` — the FTP host shown by InfinityFree
+- `INFINITYFREE_FTP_USERNAME` — your InfinityFree FTP username
+- `INFINITYFREE_FTP_PASSWORD` — your InfinityFree FTP password
+
+The workflow can also be started manually from the repository's **Actions → Deploy to InfinityFree → Run workflow** screen.
+
+Never commit FTP credentials to the repository.
